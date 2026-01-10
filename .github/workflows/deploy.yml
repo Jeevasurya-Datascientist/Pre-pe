@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup SSH for DigitalOcean server
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -22,13 +20,14 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      # 3. Build & Deploy on server with env injection
       - name: Build & Deploy on Server
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
-
             cd ${{ secrets.APP_DIR }}
+
+            echo "🧹 Removing old env file (if exists)"
+            rm -f .env.production
 
             echo "📥 Pulling latest code"
             git pull origin main
@@ -41,14 +40,14 @@ jobs:
             VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
             EOL
 
-            echo "📦 Installing dependencies with pnpm"
+            echo "📦 Installing dependencies"
             pnpm install --frozen-lockfile
 
-            echo "🏗️ Building Vite app (production)"
+            echo "🏗️ Building app"
             pnpm build
 
             echo "🔄 Reloading NGINX"
             sudo systemctl reload nginx
 
-            echo "✅ Deployment completed successfully"
+            echo "✅ Deployment finished"
           EOF
