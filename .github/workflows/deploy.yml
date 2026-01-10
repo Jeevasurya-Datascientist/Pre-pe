@@ -1,4 +1,4 @@
-name: Deploy PrePe to Server
+name: Deploy PrePe (Vite + pnpm)
 
 on:
   push:
@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. Setup SSH for server access
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -20,13 +22,25 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Server
+      # 3. Deploy to DigitalOcean server
+      - name: Build & Deploy on Server
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
+
             cd ${{ secrets.APP_DIR }}
+
+            echo "📥 Pulling latest code"
             git pull origin main
-            npm install
-            npm run build || true
-            pm2 restart pre-pe || pm2 start npm --name pre-pe -- start
+
+            echo "📦 Installing dependencies (pnpm)"
+            pnpm install --frozen-lockfile
+
+            echo "🏗️ Building Vite app"
+            pnpm build
+
+            echo "🔄 Reloading NGINX"
+            sudo systemctl reload nginx
+
+            echo "✅ Deployment completed successfully"
           EOF
