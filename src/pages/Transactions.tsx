@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
+import { BottomNav } from '@/components/home/BottomNav';
+
 const TransactionsPage = () => {
   const { user, loading } = useAuth();
 
@@ -22,8 +24,8 @@ const TransactionsPage = () => {
   }
 
   return (
-    <Layout>
-      <div className="container py-8">
+    <Layout title="Transactions">
+      <div className="container py-8 pb-24">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Transaction History</h1>
           <p className="text-muted-foreground mt-2">
@@ -32,6 +34,7 @@ const TransactionsPage = () => {
         </div>
         <TransactionHistory />
       </div>
+      <BottomNav />
     </Layout>
   );
 };

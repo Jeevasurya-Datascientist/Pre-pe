@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Phone, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Contact, ChevronRight } from 'lucide-react';
 import { getOperators, getCircles, detectOperator } from '@/services/operator.service';
 import { getPlans } from '@/services/plans.service';
 import { processRecharge } from '@/services/recharge.service';
@@ -36,7 +36,9 @@ export function MobileRechargeForm() {
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Load operators and circles
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  // Load operators, circles, and history
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -46,10 +48,18 @@ export function MobileRechargeForm() {
       ]);
       setOperators(ops);
       setCircles(circs);
+
+      if (user) {
+        import('@/services/recharge.service').then(async (mod) => {
+          const history = await mod.getTransactionHistory(user.id, 5, 'MOBILE_PREPAID');
+          // Filter only SUCCESS transactions for recent list
+          setRecentTransactions(history.filter(t => t.status === 'SUCCESS'));
+        });
+      }
       setLoading(false);
     };
     loadData();
-  }, []);
+  }, [user]);
 
   // Auto-detect operator when mobile number is entered
   useEffect(() => {
@@ -71,10 +81,41 @@ export function MobileRechargeForm() {
   useEffect(() => {
     const loadPlans = async () => {
       if (selectedOperator) {
+        console.log(`Fetching plans for Operator: ${selectedOperator}, Circle: ${selectedCircle}, Category: ${planCategory}`);
         setLoadingPlans(true);
-        const result = await getPlans(selectedOperator, selectedCircle, planCategory);
-        if (result.status === 'SUCCESS') {
-          setPlans(result.data);
+        try {
+          // If circle is not selected, default to something or handle it. 
+          // For now, plans might require circle.
+          const effectiveCircle = selectedCircle || '1'; // Default to Delhi/NCR if missing?
+
+          const result = await getPlans(selectedOperator, effectiveCircle, planCategory);
+          console.log('Plans fetch result:', result);
+
+          if (result.status === 'SUCCESS' && Array.isArray(result.data)) {
+            setPlans(result.data);
+            if (result.data.length === 0) {
+              toast({
+                title: 'No plans found',
+                description: 'Try changing the category or circle.',
+                variant: 'default',
+              });
+            }
+          } else {
+            console.error('Plan fetch failed:', result);
+            setPlans([]);
+            toast({
+              title: 'Could not fetch plans',
+              description: result.message || 'Unknown error',
+              variant: 'destructive',
+            });
+          }
+        } catch (err) {
+          console.error('Plan fetch error:', err);
+          toast({
+            title: 'Error fetching plans',
+            description: 'Network or server error',
+            variant: 'destructive',
+          });
         }
         setLoadingPlans(false);
       }
@@ -143,7 +184,6 @@ export function MobileRechargeForm() {
         description: `₹${rechargeAmount} recharge done for ${mobileNumber}`,
       });
       refetchWallet();
-      // Reset form
       setMobileNumber('');
       setAmount('');
       setSelectedPlan(null);
@@ -164,173 +204,177 @@ export function MobileRechargeForm() {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Input Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5" />
-            Mobile Recharge
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Mobile Number */}
-            <div className="space-y-2">
-              <Label htmlFor="mobile">Mobile Number</Label>
-              <div className="relative">
-                <Input
-                  id="mobile"
-                  type="tel"
-                  placeholder="Enter 10-digit number"
-                  maxLength={10}
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                />
-                {detecting && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                )}
-              </div>
-            </div>
+      {/* Mobile Number Input Section */}
+      <div className="relative">
+        <Label htmlFor="mobile" className="absolute -top-2.5 left-4 bg-white px-1 text-xs text-slate-500 z-10">Mobile Number</Label>
+        <div className="relative">
+          <Input
+            id="mobile"
+            type="tel"
+            maxLength={10}
+            value={mobileNumber}
+            onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+            className="h-14 border-blue-900 border-2 rounded-xl text-lg pl-4 pr-12 focus-visible:ring-0 focus-visible:border-blue-700"
+          />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+            {detecting ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Contact className="h-6 w-6 text-slate-500" />
+            )}
+          </div>
+        </div>
+      </div>
 
-            {/* Operator */}
-            <div className="space-y-2">
-              <Label>Operator</Label>
+      {/* Recent Recharges Section */}
+      {!mobileNumber ? (
+        <div className="space-y-3">
+          <h3 className="text-slate-600 font-medium text-lg">Recent Recharges</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 divide-y divide-slate-50">
+            {recentTransactions.length === 0 ? (
+              <div className="p-4 text-center text-sm text-slate-400">No recent recharges found</div>
+            ) : (
+              recentTransactions.map((txn) => {
+                const op = operators.find(o => o.id === txn.operator_id);
+                return (
+                  <div
+                    key={txn.id}
+                    className="p-4 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      if (txn.mobile_number) setMobileNumber(txn.mobile_number);
+                      if (txn.operator_id) setSelectedOperator(txn.operator_id);
+                      // We could pre-fill amount, but usually user might want a different plan? 
+                      // User requested "Repeat", so let's pre-fill amount too.
+                      if (txn.amount) setAmount(txn.amount.toString());
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center">
+                        {op?.logo ? (
+                          <img src={op.logo} alt={op.name} className="w-6 h-6 object-contain" />
+                        ) : (
+                          <span className="text-xs font-bold text-slate-500">{op?.name?.[0] || '?'}</span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">{txn.mobile_number}</p>
+                        <p className="text-xs text-slate-400">
+                          {op?.name || 'Unknown'} | ₹{txn.amount}
+                        </p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      Repeat
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-4">
+          {/* Operator & Circle Selection */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Operator</Label>
               <Select value={selectedOperator} onValueChange={setSelectedOperator}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select operator" />
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   {operators.map((op) => (
-                    <SelectItem key={op.id} value={op.id}>
-                      {op.name}
-                    </SelectItem>
+                    <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Circle */}
-            <div className="space-y-2">
-              <Label>Circle</Label>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Circle</Label>
               <Select value={selectedCircle} onValueChange={setSelectedCircle}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select circle" />
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   {circles.map((circle) => (
-                    <SelectItem key={circle.id} value={circle.id}>
-                      {circle.name}
-                    </SelectItem>
+                    <SelectItem key={circle.id} value={circle.id}>{circle.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Amount & Recharge Button */}
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="amount">Amount (₹)</Label>
+          {/* Amount Input */}
+          <div className="space-y-2">
+            <Label className="text-xs text-slate-500">Amount (₹)</Label>
+            <div className="flex gap-2">
               <Input
-                id="amount"
                 type="number"
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                className="h-12"
               />
+              <Button
+                onClick={handleRecharge}
+                disabled={processing || !selectedOperator || !amount}
+                className="h-12 px-6 bg-blue-600 hover:bg-blue-700"
+              >
+                {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Recharge'}
+              </Button>
             </div>
-            <Button 
-              onClick={handleRecharge} 
-              disabled={processing || !mobileNumber || !selectedOperator || !amount}
-              className="w-full sm:w-auto px-8"
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                `Recharge ₹${amount || '0'}`
-              )}
-            </Button>
           </div>
 
-          {user && (
-            <p className="text-sm text-muted-foreground">
-              Wallet Balance: <span className="font-semibold text-foreground">₹{availableBalance.toFixed(2)}</span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          {/* Plans Section */}
+          {selectedOperator && (
+            <div className="mt-4">
+              <Tabs value={planCategory} onValueChange={setPlanCategory}>
+                <TabsList className="w-full justify-start overflow-x-auto p-1 mb-2 bg-slate-50">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="unlimited">Unlimited</TabsTrigger>
+                  <TabsTrigger value="data">Data</TabsTrigger>
+                  <TabsTrigger value="combo">Combo</TabsTrigger>
+                </TabsList>
 
-      {/* Plans */}
-      {selectedOperator && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Browse Plans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={planCategory} onValueChange={setPlanCategory}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="unlimited">Unlimited</TabsTrigger>
-                <TabsTrigger value="data">Data</TabsTrigger>
-                <TabsTrigger value="combo">Combo</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={planCategory}>
-                {loadingPlans ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : plans.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No plans found for this category
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {plans.map((plan) => (
-                      <Card 
-                        key={plan.id} 
-                        className={`cursor-pointer transition-all hover:border-primary ${
-                          selectedPlan?.id === plan.id ? 'border-primary ring-2 ring-primary/20' : ''
-                        }`}
-                        onClick={() => handlePlanSelect(plan)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <span className="text-2xl font-bold text-primary">₹{plan.amount}</span>
-                            <Badge variant="secondary">{plan.validity}</Badge>
-                          </div>
-                          <p className="text-sm text-foreground mb-2">{plan.description}</p>
-                          {plan.data && (
-                            <p className="text-xs text-muted-foreground">Data: {plan.data}</p>
-                          )}
-                          {selectedPlan?.id === plan.id && (
-                            <div className="mt-2 flex items-center text-sm text-primary">
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
-                              Selected
+                <TabsContent value={planCategory}>
+                  {loadingPlans ? (
+                    <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>
+                  ) : (
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                      {plans.map((plan) => (
+                        <div
+                          key={plan.id}
+                          onClick={() => handlePlanSelect(plan)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all hover:border-blue-500 hover:bg-blue-50 ${selectedPlan?.id === plan.id ? 'border-blue-500 bg-blue-50/50' : 'border-slate-100 bg-white'}`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-bold text-lg text-slate-800">₹{plan.amount}</span>
+                              <Badge variant="outline" className="ml-2 text-[10px] font-normal">{plan.validity}</Badge>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                            {selectedPlan?.id === plan.id && <Badge className="bg-blue-500 text-[10px]">Selected</Badge>}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{plan.description}</p>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{plan.data || 'No Data'}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

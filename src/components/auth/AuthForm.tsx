@@ -24,11 +24,12 @@ export function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
+  const [phone, setPhone] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; phone?: string }>({});
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string; fullName?: string } = {};
-    
+    const newErrors: { email?: string; password?: string; fullName?: string; phone?: string } = {};
+
     try {
       emailSchema.parse(email);
     } catch (e) {
@@ -45,8 +46,13 @@ export function AuthForm() {
       }
     }
 
-    if (tab === 'signup' && !fullName.trim()) {
-      newErrors.fullName = 'Please enter your full name';
+    if (tab === 'signup') {
+      if (!fullName.trim()) {
+        newErrors.fullName = 'Please enter your full name';
+      }
+      if (!phone.trim() || phone.length < 10) {
+        newErrors.phone = 'Please enter a valid 10-digit mobile number';
+      }
     }
 
     setErrors(newErrors);
@@ -63,7 +69,7 @@ export function AuthForm() {
     if (error) {
       toast({
         title: 'Sign in failed',
-        description: error.message === 'Invalid login credentials' 
+        description: error.message === 'Invalid login credentials'
           ? 'Invalid email or password. Please try again.'
           : error.message,
         variant: 'destructive',
@@ -73,7 +79,7 @@ export function AuthForm() {
         title: 'Welcome back!',
         description: 'You have signed in successfully',
       });
-      navigate('/');
+      navigate('/home');
     }
   };
 
@@ -81,7 +87,7 @@ export function AuthForm() {
     if (!validateForm()) return;
 
     setLoading(true);
-    const { data, error } = await signUp(email, password, fullName);
+    const { data, error } = await signUp(email, password, fullName, phone);
     setLoading(false);
 
     if (error) {
@@ -102,9 +108,9 @@ export function AuthForm() {
     } else {
       toast({
         title: 'Account created!',
-        description: 'Welcome to RechargeHub! You can now start using the platform.',
+        description: 'Welcome to Pre Pe! You can now start using the platform.',
       });
-      navigate('/');
+      navigate('/home');
     }
   };
 
@@ -117,7 +123,7 @@ export function AuthForm() {
               <Smartphone className="h-6 w-6 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome to RechargeHub</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Pre Pe</CardTitle>
           <CardDescription>
             {tab === 'signin' ? 'Sign in to your account' : 'Create a new account'}
           </CardDescription>
@@ -189,6 +195,23 @@ export function AuthForm() {
                   />
                 </div>
                 {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-phone">Mobile Number</Label>
+                <div className="relative">
+                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="9876543210"
+                    className="pl-10"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    maxLength={10}
+                  />
+                </div>
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
               </div>
 
               <div className="space-y-2">

@@ -8,6 +8,12 @@
 import type { Operator, Circle, ApiResponse } from '@/types/recharge.types';
 import { supabase } from '@/integrations/supabase/client';
 
+import { fetchKwikOperators, fetchOperatorDetails, KwikOperator } from './kwikApiService';
+
+/**
+ * Get all operators by type
+ */
+
 // Mock operators data - Replace with real API call
 const MOCK_OPERATORS: Operator[] = [
   { id: '1', name: 'Airtel', code: 'AIRTEL', type: 'prepaid', logo: '/operators/airtel.png' },
@@ -40,13 +46,34 @@ const MOCK_CIRCLES: Circle[] = [
  * Get all operators by type
  */
 export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promise<Operator[]> {
-  // TODO: Replace with real API call
-  // const response = await supabase.functions.invoke('get-operators', { body: { type } });
-  
-  if (type) {
-    return MOCK_OPERATORS.filter(op => op.type === type);
+  try {
+    const kwikOperators = await fetchKwikOperators();
+
+    // Map Kwik operators to app Operator type
+    const operators: Operator[] = kwikOperators.map((op) => ({
+      id: op.operator_id,
+      name: op.operator_name,
+      code: op.operator_id, // Using ID as unique code
+      type: op.service_type.toLowerCase() as 'prepaid' | 'postpaid' | 'dth',
+      logo: `/operators/${op.operator_name.toLowerCase().replace(/\s+/g, '-')}.png` // Placeholder logo path logic
+    }));
+
+    // If API returns empty (e.g. invalid key or other issue)
+    if (operators.length === 0) {
+      console.warn('Kwik API returned no operators');
+      return [];
+    }
+
+    if (type) {
+      return operators.filter(op => op.type === type);
+    }
+
+    // Filter to supported types only if returning all
+    return operators.filter(op => ['prepaid', 'postpaid', 'dth'].includes(op.type));
+  } catch (error) {
+    console.error('Error fetching operators:', error);
+    return [];
   }
-  return MOCK_OPERATORS;
 }
 
 /**
@@ -55,7 +82,7 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
 export async function getCircles(): Promise<Circle[]> {
   // TODO: Replace with real API call
   // const response = await supabase.functions.invoke('get-circles');
-  
+
   return MOCK_CIRCLES;
 }
 
@@ -63,38 +90,61 @@ export async function getCircles(): Promise<Circle[]> {
  * Auto-detect operator from mobile number
  * Uses number prefix to determine operator
  */
+/**
+ * Auto-detect operator from mobile number
+ * Uses Kwik API to detect operator
+ */
 export async function detectOperator(mobileNumber: string): Promise<ApiResponse<{ operator: Operator; circle: Circle } | null>> {
-  // TODO: Replace with real API call
-  // const response = await supabase.functions.invoke('detect-operator', { body: { mobile_number: mobileNumber } });
-  
-  // Mock detection logic based on prefix
-  const prefix = mobileNumber.substring(0, 4);
-  
-  let detectedOperator: Operator | undefined;
-  
-  // Simple prefix-based detection (placeholder logic)
-  if (prefix.startsWith('701') || prefix.startsWith('702')) {
-    detectedOperator = MOCK_OPERATORS.find(op => op.code === 'AIRTEL');
-  } else if (prefix.startsWith('703') || prefix.startsWith('704')) {
-    detectedOperator = MOCK_OPERATORS.find(op => op.code === 'JIO');
-  } else if (prefix.startsWith('705') || prefix.startsWith('706')) {
-    detectedOperator = MOCK_OPERATORS.find(op => op.code === 'VI');
-  } else {
-    detectedOperator = MOCK_OPERATORS.find(op => op.code === 'BSNL');
-  }
-  
-  if (detectedOperator) {
+  if (mobileNumber.length < 4) {
     return {
-      status: 'SUCCESS',
+      status: 'FAILED',
       transaction_id: '',
-      message: 'Operator detected successfully',
-      data: {
-        operator: detectedOperator,
-        circle: MOCK_CIRCLES[0], // Default circle
-      },
+      message: 'Invalid mobile number',
+      data: null,
     };
   }
-  
+
+  try {
+    // 1. Try Kwik API
+    const details = await fetchOperatorDetails(mobileNumber);
+
+    if (details.success && details.response) {
+      const apiOpName = details.response.operator;
+      const apiCircleName = details.response.circle;
+
+      // Fetch latest operators to match against
+      const operators = await getOperators('prepaid');
+      // Match operator by name (loose matching)
+      const matchedOp = operators.find(op =>
+        op.name.toLowerCase().includes(apiOpName.toLowerCase()) ||
+        apiOpName.toLowerCase().includes(op.name.toLowerCase())
+      );
+
+      // Find circle (using mock circles for now as we don't have circle API yet)
+      const circles = await getCircles();
+      const matchedCircle = circles.find(c =>
+        c.name.toLowerCase().includes(apiCircleName.toLowerCase()) ||
+        apiCircleName.toLowerCase().includes(c.name.toLowerCase())
+      ) || circles[0]; // Default to first if not found
+
+      if (matchedOp) {
+        // Ensure we pass the ID that getPlans expects
+        console.log('Matched Operator:', matchedOp);
+        return {
+          status: 'SUCCESS',
+          transaction_id: '',
+          message: 'Operator detected successfully',
+          data: {
+            operator: matchedOp,
+            circle: matchedCircle,
+          },
+        };
+      }
+    }
+  } catch (error) {
+    console.error('API operator detection failed', error);
+  }
+
   return {
     status: 'FAILED',
     transaction_id: '',

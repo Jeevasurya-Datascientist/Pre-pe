@@ -20,8 +20,8 @@ All colors MUST be HSL.
     --popover: 0 0% 89%;
     --popover-foreground: 0 0% 9%;
 
-    --primary: 161 93% 30%;
-    --primary-foreground: 151 80% 95%;
+    --primary: 158 64% 51%; /* Emerald 600 */
+    --primary-foreground: 0 0% 98%;
 
     --secondary: 0 0% 32%;
     --secondary-foreground: 0 0% 98%;
@@ -45,9 +45,9 @@ All colors MUST be HSL.
 
     --sidebar-foreground: 0 0% 9%;
 
-    --sidebar-primary: 161 93% 30%;
+    --sidebar-primary: 142 76% 36%;
 
-    --sidebar-primary-foreground: 151 80% 95%;
+    --sidebar-primary-foreground: 355.7 100% 97.3%;
 
     --sidebar-accent: 0 0% 32%;
 

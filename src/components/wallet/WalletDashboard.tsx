@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { getWalletLedger } from '@/services/wallet.service';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { PayoutForm } from './PayoutForm';
 
 interface LedgerEntry {
   id: string;
@@ -20,6 +22,7 @@ interface LedgerEntry {
 }
 
 export function WalletDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { balance, lockedBalance, availableBalance, loading, refetch } = useWallet();
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
@@ -109,33 +112,38 @@ export function WalletDashboard() {
       </div>
 
       {/* Add Money Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Add Money to Wallet
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-accent/50 rounded-lg p-4 text-center">
-            <p className="text-muted-foreground mb-2">
-              Payment gateway integration coming soon!
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Contact admin to add balance to your wallet.
-            </p>
-          </div>
-
-          {/* Quick Add Amounts */}
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {[100, 200, 500, 1000].map((amt) => (
-              <Button key={amt} variant="outline" disabled>
-                ₹{amt}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add Money to Wallet
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-accent/50 rounded-lg p-4 text-center space-y-3">
+              <p className="text-muted-foreground">
+                Add money securely via UPI
+              </p>
+              <Button className="w-full" onClick={() => navigate('/wallet/topup')}>
+                Add Money
               </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+
+            {/* Quick Add Amounts */}
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              {[100, 200, 500, 1000].map((amt) => (
+                <Button key={amt} variant="outline" disabled>
+                  ₹{amt}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Withdrawal/Payout Section */}
+        <PayoutForm />
+      </div>
 
       {/* Wallet Ledger */}
       <Card>

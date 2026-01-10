@@ -39,9 +39,9 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string) => {
+    const redirectUrl = `${window.location.origin}/home`;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -49,10 +49,11 @@ export function useAuth() {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          phone: phone,
         },
       },
     });
-    
+
     return { data, error };
   }, []);
 
@@ -61,7 +62,7 @@ export function useAuth() {
       email,
       password,
     });
-    
+
     return { data, error };
   }, []);
 
