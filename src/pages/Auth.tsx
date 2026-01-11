@@ -9,7 +9,7 @@ const AuthPage = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout hideHeader>
         <div className="container py-8 flex items-center justify-center min-h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -22,7 +22,7 @@ const AuthPage = () => {
   }
 
   return (
-    <Layout>
+    <Layout hideHeader>
       <AuthForm />
     </Layout>
   );

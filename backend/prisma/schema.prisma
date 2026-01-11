@@ -1,0 +1,168 @@
+//////////////////////////////////////
+// Prisma Generator
+//////////////////////////////////////
+generator client {
+  provider = "prisma-client-js"
+}
+
+//////////////////////////////////////
+// Database (Supabase PostgreSQL)
+//////////////////////////////////////
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////
+// ENUMS
+//////////////////////////////////////
+enum AppRole {
+  USER
+  ADMIN
+  DISTRIBUTOR
+  RETAILER
+}
+
+//////////////////////////////////////
+// PROFILES (Supabase user profile)
+//////////////////////////////////////
+model profiles {
+  id         String   @id @db.Uuid
+  user_id    String   @db.Uuid
+  email      String?
+  full_name  String?
+  phone      String?
+  created_at DateTime @db.Timestamptz
+  updated_at DateTime @db.Timestamptz
+
+  wallets    wallets[]
+  user_roles user_roles[]
+
+  @@map("profiles")
+}
+
+//////////////////////////////////////
+// USER ROLES
+//////////////////////////////////////
+model user_roles {
+  id         String   @id @db.Uuid
+  user_id    String   @db.Uuid
+  role       AppRole
+  created_at DateTime @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("user_roles")
+}
+
+//////////////////////////////////////
+// WALLETS
+//////////////////////////////////////
+model wallets {
+  id             String   @id @db.Uuid
+  user_id        String   @db.Uuid
+  balance        Decimal  @db.Numeric
+  locked_balance Decimal  @db.Numeric
+  created_at     DateTime @db.Timestamptz
+  updated_at     DateTime @db.Timestamptz
+
+  profile       profiles       @relation(fields: [user_id], references: [user_id])
+  wallet_ledger wallet_ledger[]
+
+  @@map("wallets")
+}
+
+//////////////////////////////////////
+// WALLET LEDGER (CR / DR)
+//////////////////////////////////////
+model wallet_ledger {
+  id            String   @id @db.Uuid
+  wallet_id     String   @db.Uuid
+  transaction_id String? @db.Uuid
+  type          String
+  amount        Decimal  @db.Numeric
+  balance_after Decimal  @db.Numeric
+  description   String?
+  created_at    DateTime @db.Timestamptz
+
+  wallet wallets @relation(fields: [wallet_id], references: [id])
+
+  @@map("wallet_ledger")
+}
+
+//////////////////////////////////////
+// MAIN TRANSACTIONS (Recharge / DTH / Bill)
+//////////////////////////////////////
+model transactions {
+  id                 String   @id @db.Uuid
+  user_id            String   @db.Uuid
+  type               String
+  service_type       String
+  amount             Decimal  @db.Numeric
+  status             String
+  operator_id        String?
+  operator_name      String?
+  mobile_number      String?
+  dth_id             String?
+  reference_id       String?
+  api_transaction_id String?
+  commission         Decimal?
+  metadata           Json?
+  created_at         DateTime @db.Timestamptz
+  updated_at         DateTime @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("transactions")
+}
+
+//////////////////////////////////////
+// UPI TRANSACTIONS (Wallet Topups)
+//////////////////////////////////////
+model upi_transactions {
+  id             String   @id @db.Uuid
+  user_id        String   @db.Uuid
+  amount         Decimal  @db.Numeric
+  upi_ref_id     String?
+  gateway_status String?
+  app_used       String?
+  intent_url     String?
+  qr_code        String?
+  created_at     DateTime @db.Timestamptz
+  updated_at     DateTime @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("upi_transactions")
+}
+
+//////////////////////////////////////
+// COMMISSION SLABS
+//////////////////////////////////////
+model commission_slabs {
+  id               String   @id @db.Uuid
+  operator_id      String
+  service_type     String
+  min_amount       Decimal  @db.Numeric
+  max_amount       Decimal  @db.Numeric
+  commission_type  String
+  commission_value Decimal  @db.Numeric
+  is_active        Boolean
+  created_at       DateTime @db.Timestamptz
+  updated_at       DateTime @db.Timestamptz
+
+  @@map("commission_slabs")
+}
+
+//////////////////////////////////////
+// ADMIN AUDIT LOGS
+//////////////////////////////////////
+model admin_audit_logs {
+  id         String   @id @db.Uuid
+  admin_id   String   @db.Uuid
+  action     String
+  metadata   Json?
+  created_at DateTime @db.Timestamptz
+
+  @@map("admin_audit_logs")
+}

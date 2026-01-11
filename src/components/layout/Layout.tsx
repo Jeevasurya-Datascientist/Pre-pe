@@ -7,15 +7,16 @@ interface LayoutProps {
   children: React.ReactNode;
   title?: string;
   showBack?: boolean;
+  hideHeader?: boolean;
 }
 
-export const Layout = ({ children, title, showBack }: LayoutProps) => {
+export const Layout = ({ children, title, showBack, hideHeader }: LayoutProps) => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-blue-50/30 flex justify-center w-full">
       <div className="w-full max-w-md bg-white shadow-xl min-h-screen relative flex flex-col">
-        {title ? (
+        {!hideHeader && (title ? (
           <div className="bg-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50 border-b border-gray-100">
             {showBack && (
               <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
@@ -26,7 +27,7 @@ export const Layout = ({ children, title, showBack }: LayoutProps) => {
           </div>
         ) : (
           <Header />
-        )}
+        ))}
         <main className="flex-1">{children}</main>
       </div>
     </div>
