@@ -33,9 +33,9 @@ export const ServiceGrid = () => {
   const services = [
     { icon: Smartphone, label: "Prepaid", path: "/mobile-recharge" }, // Matches 'Prepaid'
     { icon: Tv, label: "DTH", path: "/dth-recharge" }, // Matches 'DTH'
+    { icon: Lightbulb, label: "Electricity", path: "/services/electricity" }, // Matches 'Electricity'
     { icon: Play, label: "Redeem Code", path: "/services/redeem-code" }, // Matches 'Redeem Code' (Google Play icon usually)
     { icon: Car, label: "FastTag", path: "/services/fasttag" }, // Matches 'FasTag'
-    { icon: Lightbulb, label: "Electricity", path: "/services/electricity" }, // Matches 'Electricity'
     { icon: SmartphoneCharging, label: "Postpaid", path: "/postpaid" }, // Matches 'Postpaid'
     { icon: Phone, label: "Landline", path: "/services/landline" }, // Matches 'Landline'
     { icon: Flame, label: "Gas Bill", path: "/services/gas-bill" }, // Matches 'Gas Bill'

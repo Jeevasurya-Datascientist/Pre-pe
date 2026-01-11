@@ -11,7 +11,7 @@ jobs:
 
     steps:
       # 1️⃣ Checkout code
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       # 2️⃣ Setup Node.js
@@ -19,39 +19,49 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'pnpm'
 
-      # 3️⃣ Enable pnpm (IMPORTANT FIX)
+      # 3️⃣ Enable pnpm
       - name: Enable pnpm
         run: |
           corepack enable
           corepack prepare pnpm@10.28.0 --activate
-          pnpm --version
 
       # 4️⃣ Install dependencies
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       # 5️⃣ Build frontend
       - name: Build frontend
         run: pnpm run build
 
-      # 6️⃣ Upload dist to server
+      # 🔍 (Optional but recommended) Verify dist exists
+      - name: Verify build output
+        run: |
+          ls -la dist
+          test -f dist/index.html
+
+      # 6️⃣ Upload build to server (SCP)
       - name: Upload build to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           source: "dist/*"
-          target: "${{ secrets.SERVER_PATH }}/dist"
+          target: "/var/www/pre-pe/dist"
           strip_components: 1
+          overwrite: true
 
-      # 7️⃣ Restart nginx
-      - name: Restart Nginx
+      # 7️⃣ Reload Nginx
+      - name: Reload Nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            sudo systemctl restart nginx
+            sudo nginx -t
+            sudo systemctl reload nginx

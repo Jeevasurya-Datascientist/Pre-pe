@@ -147,11 +147,14 @@ export function WalletDashboard() {
 
       {/* Wallet Ledger */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Wallet Activity
           </CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/wallet/ledger')}>
+            View All
+          </Button>
         </CardHeader>
         <CardContent>
           {loadingLedger ? (

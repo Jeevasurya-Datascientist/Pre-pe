@@ -27,6 +27,9 @@ import TransactionsAdmin from "./pages/admin/TransactionsAdmin";
 import TopUpPage from "./pages/TopUpPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 
+import TransactionDetailsPage from "./pages/TransactionDetailsPage";
+import LedgerPage from "./pages/LedgerPage";
+import HistoryPage from "./pages/reports/HistoryPage";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import ThemeSettings from "./pages/settings/ThemeSettings";
 import SecuritySettings from "./pages/settings/SecuritySettings";
@@ -62,6 +65,7 @@ const App = () => (
           <Route path="/legal/refund" element={<LegalPage title="Refund Policy" type="refund" />} />
 
           <Route path="/mobile-recharge" element={<MobileRecharge />} />
+          <Route path="/offers" element={<CashbackOffers />} />
 
           {/* Provider Selection Routes */}
           <Route path="/dth-recharge" element={<DTHSelectProvider />} />
@@ -77,7 +81,10 @@ const App = () => (
 
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/wallet/topup" element={<TopUpPage />} />
+          <Route path="/wallet/ledger" element={<LedgerPage />} />
+          <Route path="/reports/history" element={<HistoryPage />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/transaction/:id" element={<TransactionDetailsPage />} />
 
 
           {/* Admin Routes */}

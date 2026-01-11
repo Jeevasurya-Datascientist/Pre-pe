@@ -1,31 +1,41 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, History, Smartphone, Tv, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { Search, Calendar as CalendarIcon, Loader2, History, Smartphone, Tv, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { getTransactionHistory } from '@/services/recharge.service';
 import { format } from 'date-fns';
 import type { Transaction } from '@/types/recharge.types';
 
 export function TransactionHistory() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>('all');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   useEffect(() => {
     const loadTransactions = async () => {
       if (user) {
         setLoading(true);
-        const serviceType = filter === 'all' ? undefined : filter;
-        const txns = await getTransactionHistory(user.id, 50, serviceType);
+        const txns = await getTransactionHistory(user.id, 50);
         setTransactions(txns);
         setLoading(false);
       }
     };
     loadTransactions();
-  }, [user, filter]);
+  }, [user]);
 
   const getServiceIcon = (serviceType: string) => {
     switch (serviceType) {
@@ -87,68 +97,123 @@ export function TransactionHistory() {
     }
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <History className="h-5 w-5" />
-          Transaction History
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={filter} onValueChange={setFilter} className="mb-4">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="MOBILE_PREPAID">Mobile</TabsTrigger>
-            <TabsTrigger value="DTH">DTH</TabsTrigger>
-            <TabsTrigger value="MOBILE_POSTPAID">Postpaid</TabsTrigger>
-          </TabsList>
-        </Tabs>
+  // Filter Transactions
+  const filteredTransactions = transactions.filter((tx) => {
+    const query = searchQuery.toLowerCase();
+    const date = new Date(tx.created_at);
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="text-center py-12">
-            <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No transactions found</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/30 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-accent">
-                    {getServiceIcon(tx.service_type)}
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {tx.mobile_number || tx.dth_id || 'N/A'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {getServiceLabel(tx.service_type)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(tx.created_at), 'MMM d, yyyy h:mm a')}
-                      </span>
-                    </div>
-                  </div>
+    // Search Filter
+    const matchesSearch =
+      tx.id.toLowerCase().includes(query) ||
+      (tx.mobile_number && tx.mobile_number.includes(query)) ||
+      (tx.dth_id && tx.dth_id.includes(query)) ||
+      (tx.reference_id && tx.reference_id.toLowerCase().includes(query));
+
+    // Date Filter
+    const matchesDate =
+      (!dateRange.from || date >= dateRange.from) &&
+      (!dateRange.to || date <= new Date(dateRange.to.setHours(23, 59, 59, 999)));
+
+    return matchesSearch && matchesDate;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Filters Header */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by ID, Mobile, or Reference..."
+            className="pl-9 bg-white"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-[240px] justify-start text-left font-normal bg-white",
+                !dateRange.from && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                    {format(dateRange.to, "LLL dd, y")}
+                  </>
+                ) : (
+                  format(dateRange.from, "LLL dd, y")
+                )
+              ) : (
+                <span>Pick a date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={dateRange.from}
+              selected={dateRange}
+              onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        <div className="text-center py-12 border rounded-lg bg-slate-50 border-dashed border-slate-200">
+          <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No transactions match your filters</p>
+          <Button variant="link" onClick={() => { setSearchQuery(''); setDateRange({ from: undefined, to: undefined }); }}>
+            Clear Filters
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredTransactions.map((tx) => (
+            <div
+              key={tx.id}
+              className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm hover:border-primary/30 hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
+              onClick={() => navigate(`/transaction/${tx.id}`, { state: { transaction: tx } })}
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-slate-50 text-slate-600">
+                  {getServiceIcon(tx.service_type)}
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-lg">₹{Number(tx.amount).toFixed(2)}</p>
-                  <div className="mt-1">{getStatusBadge(tx.status)}</div>
+                <div>
+                  <p className="font-semibold text-slate-800">
+                    {tx.mobile_number || tx.dth_id || 'N/A'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-500 font-medium">
+                      {getServiceLabel(tx.service_type)}
+                    </span>
+                    <span className="text-xs text-slate-300">•</span>
+                    <span className="text-xs text-slate-400">
+                      {format(new Date(tx.created_at), 'MMM d, h:mm a')}
+                    </span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <div className="text-right">
+                <p className="font-bold text-lg text-slate-900">₹{Number(tx.amount).toFixed(2)}</p>
+                <div className="mt-1">{getStatusBadge(tx.status)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

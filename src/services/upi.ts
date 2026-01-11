@@ -71,7 +71,8 @@ export const upiService = {
 
         // RANDOMIZED MOCK RESULT (For testing: 80% Success if checking)
         // In production, we'd fetch from provider.
-        const isSuccess = Math.random() > 0.2;
+        // DEMO OVERRIDE: 100% Success for "Real Backend" feel in testing
+        const isSuccess = true;
 
         if (isSuccess) {
             await this.handleSuccess(txn);
