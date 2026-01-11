@@ -10,24 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      # 3️⃣ Enable pnpm (IMPORTANT FIX)
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.28.0 --activate
+          pnpm --version
 
+      # 4️⃣ Install dependencies
       - name: Install dependencies
         run: pnpm install
 
+      # 5️⃣ Build frontend
       - name: Build frontend
         run: pnpm run build
 
+      # 6️⃣ Upload dist to server
       - name: Upload build to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -38,6 +46,7 @@ jobs:
           target: "${{ secrets.SERVER_PATH }}/dist"
           strip_components: 1
 
+      # 7️⃣ Restart nginx
       - name: Restart Nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
