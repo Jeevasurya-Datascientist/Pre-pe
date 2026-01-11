@@ -21,6 +21,15 @@ const ProfilePage = () => {
         return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
     };
 
+    const handleLogout = async () => {
+        try {
+            await signOut();
+            navigate("/");
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
     const SettingItem = ({ icon: Icon, title, subtitle, onClick, colorClass = "text-slate-600", bgClass = "bg-slate-100" }: any) => (
         <div
             onClick={onClick}
@@ -96,7 +105,7 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Logout */}
-                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden mt-6" onClick={signOut}>
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden mt-6" onClick={handleLogout}>
                         <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-red-50 transition-colors">
                             <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
                                 <LogOut className="h-5 w-5 text-slate-600" />
