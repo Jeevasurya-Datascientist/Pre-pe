@@ -9,7 +9,16 @@ import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { validateBankAccount } from '@/services/kwikApiService';
 import { withdrawBalance } from '@/services/wallet.service';
+import { Editor } from "@tinymce/tinymce-react";
 
+<Editor
+    init={{
+        height: 300,
+        menubar: false,
+        plugins: ["autoresize", "lists", "link"],
+        toolbar: "bold italic | bullist numlist | link",
+    }}
+/>
 
 export function PayoutForm() {
     const { user } = useAuth();
