@@ -1,4 +1,4 @@
-name: Deploy PrePe (Vite + pnpm + Env)
+name: Deploy Frontend to Server
 
 on:
   push:
@@ -13,41 +13,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
 
-      - name: Build & Deploy on Server
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            set -e
-            cd ${{ secrets.APP_DIR }}
+      - name: Install pnpm
+        run: npm install -g pnpm
 
-            echo "🧹 Removing old env file (if exists)"
-            rm -f .env.production
+      - name: Install dependencies
+        run: pnpm install
 
-            echo "📥 Pulling latest code"
-            git pull origin main
+      - name: Build frontend
+        run: pnpm run build
 
-            echo "🧩 Creating .env.production"
-            cat > .env.production << EOL
-            VITE_KWIK_API_KEY=${{ secrets.VITE_KWIK_API_KEY }}
-            VITE_RECHARGE_API_BASE_URL=${{ secrets.VITE_RECHARGE_API_BASE_URL }}
-            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
-            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-            EOL
+      - name: Upload build to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "dist/*"
+          target: "${{ secrets.SERVER_PATH }}/dist"
+          strip_components: 1
 
-            echo "📦 Installing dependencies"
-            pnpm install --frozen-lockfile
-
-            echo "🏗️ Building app"
-            pnpm build
-
-            echo "🔄 Reloading NGINX"
-            sudo systemctl reload nginx
-
-            echo "✅ Deployment finished"
-          EOF
+      - name: Restart Nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo systemctl restart nginx
