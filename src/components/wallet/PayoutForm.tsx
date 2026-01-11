@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { validateBankAccount } from '@/services/kwikApiService';
 import { withdrawBalance } from '@/services/wallet.service';
 
+
 export function PayoutForm() {
     const { user } = useAuth();
     const { availableBalance, refetch: refetchWallet } = useWallet();
