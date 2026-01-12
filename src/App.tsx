@@ -19,7 +19,10 @@ import { DTHSelectProvider } from "./pages/dth/DTHSelectProvider";
 import { DTHEnterDetails } from "./pages/dth/DTHEnterDetails";
 
 import NotFound from "./pages/NotFound";
-import AdminLayout from "./pages/admin/AdminLayout";
+import { AdminLayout } from "@/layouts/AdminLayout";
+import { AdminGuard } from "@/components/auth/AdminGuard";
+import AdminLogin from "./pages/admin/AdminLogin";
+import { KYCRequests } from "./pages/admin/KYCRequests";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import CommissionManager from "./pages/admin/CommissionManager";
@@ -36,8 +39,13 @@ import SecuritySettings from "./pages/settings/SecuritySettings";
 import KYCUpgrade from "./pages/settings/KYCUpgrade";
 import KYCPage from "./pages/KYCPage";
 import ReferEarn from "./pages/settings/ReferEarn";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
+import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
+import MagicLinkPage from "./pages/auth/MagicLinkPage";
 import CashbackOffers from "./pages/settings/CashbackOffers";
 import LegalPage from "./pages/settings/LegalPage";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -48,56 +56,67 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+
+
           <Route path="/" element={<Auth />} />
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-
-
-          {/* Settings Sub-routes - Verified for Navigation */}
-          <Route path="/profile/edit" element={<ProfileSettings />} />
-          <Route path="/profile/theme" element={<ThemeSettings />} />
-          <Route path="/profile/security" element={<SecuritySettings />} />
-          <Route path="/profile/kyc" element={<KYCUpgrade />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
+          <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/auth/magic-link" element={<MagicLinkPage />} />
           <Route path="/kyc" element={<KYCPage />} />
-          <Route path="/profile/refer" element={<ReferEarn />} />
-          <Route path="/profile/offers" element={<CashbackOffers />} />
           <Route path="/legal/terms" element={<LegalPage title="Terms & Conditions" type="terms" />} />
           <Route path="/legal/privacy" element={<LegalPage title="Privacy Policy" type="privacy" />} />
           <Route path="/legal/refund" element={<LegalPage title="Refund Policy" type="refund" />} />
 
-          <Route path="/mobile-recharge" element={<MobileRecharge />} />
-          <Route path="/offers" element={<CashbackOffers />} />
+          {/* Protected Routes - Require Login & KYC */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/edit" element={<ProfileSettings />} />
+            <Route path="/profile/theme" element={<ThemeSettings />} />
+            <Route path="/profile/security" element={<SecuritySettings />} />
+            <Route path="/profile/kyc" element={<KYCUpgrade />} />
+            <Route path="/profile/refer" element={<ReferEarn />} />
+            <Route path="/profile/offers" element={<CashbackOffers />} />
 
-          {/* Provider Selection Routes */}
-          <Route path="/dth-recharge" element={<DTHSelectProvider />} />
-          <Route path="/dth-recharge/enter-details" element={<DTHEnterDetails />} />
-          <Route path="/services/electricity" element={<SelectProviderPage type="electricity" title="Select Provider" />} />
-          <Route path="/services/broadband" element={<SelectProviderPage type="broadband" title="Select Broadband" />} />
-          <Route path="/services/redeem-code" element={<RedeemCodePage />} />
+            <Route path="/mobile-recharge" element={<MobileRecharge />} />
+            <Route path="/offers" element={<CashbackOffers />} />
 
-          <Route path="/services/:serviceName" element={<ServicePlaceholder />} />
+            <Route path="/dth-recharge" element={<DTHSelectProvider />} />
+            <Route path="/dth-recharge/enter-details" element={<DTHEnterDetails />} />
+            <Route path="/services/electricity" element={<SelectProviderPage type="electricity" title="Select Provider" />} />
+            <Route path="/services/broadband" element={<SelectProviderPage type="broadband" title="Select Broadband" />} />
+            <Route path="/services/redeem-code" element={<RedeemCodePage />} />
 
-          <Route path="/postpaid" element={<Postpaid />} />
-          {/* Other routes... */}
+            <Route path="/services/:serviceName" element={<ServicePlaceholder />} />
+            <Route path="/postpaid" element={<Postpaid />} />
 
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/wallet/topup" element={<TopUpPage />} />
-          <Route path="/wallet/ledger" element={<LedgerPage />} />
-          <Route path="/reports/history" element={<HistoryPage />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/transaction/:id" element={<TransactionDetailsPage />} />
-
-
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="transactions" element={<TransactionsAdmin />} />
-            <Route path="commissions" element={<CommissionManager />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/wallet/topup" element={<TopUpPage />} />
+            <Route path="/wallet/ledger" element={<LedgerPage />} />
+            <Route path="/reports/history" element={<HistoryPage />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/transaction/:id" element={<TransactionDetailsPage />} />
           </Route>
 
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          {/* Admin Auth */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+
+          {/* Protected Admin Routes */}
+          <Route element={<AdminGuard />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="kyc" element={<KYCRequests />} />
+
+              {/* Placeholders for future */}
+              <Route path="users" element={<UserManagement />} />
+              <Route path="transactions" element={<TransactionsAdmin />} />
+              <Route path="commissions" element={<CommissionManager />} />
+            </Route>
+          </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

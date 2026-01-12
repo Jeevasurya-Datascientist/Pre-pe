@@ -108,10 +108,10 @@ export function AuthForm() {
     } else {
       toast({
         title: 'Account created!',
-        description: 'Welcome to Pre Pe! You can now start using the platform.',
+        description: 'Please check your email to verify your account.',
       });
-      // Redirect to KYC page after successful signup
-      navigate('/kyc');
+      // Redirect to Verify Email page
+      navigate('/auth/verify-email');
     }
   };
 
@@ -195,6 +195,22 @@ export function AuthForm() {
                     ) : (
                       <>Sign In <ArrowRight className="ml-2 w-4 h-4" /></>
                     )}
+                  </Button>
+
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-slate-500">Or continue with</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-11"
+                    onClick={() => navigate('/auth/magic-link')}
+                  >
                   </Button>
                 </div>
               </div>

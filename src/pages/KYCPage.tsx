@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,18 +13,21 @@ import { submitKYC, uploadKYCDocument, getKYCStatus } from '@/services/kyc.servi
 
 const KYCPage = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { user } = useAuth();
     const { toast } = useToast();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(true);
     const [kycStatus, setKycStatus] = useState<string | null>(null);
+    const [kycData, setKycData] = useState<any>(null);
 
     // Form States
     const [panNumber, setPanNumber] = useState('');
     const [aadharNumber, setAadharNumber] = useState('');
     const [dob, setDob] = useState('');
     const [gender, setGender] = useState('');
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     // Document States
     const [aadharFront, setAadharFront] = useState<File | null>(null);
@@ -32,14 +36,50 @@ const KYCPage = () => {
     const [selfie, setSelfie] = useState<File | null>(null);
 
     useEffect(() => {
+        // Load saved state
+        const savedData = localStorage.getItem('kyc_draft');
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            setPanNumber(parsed.panNumber || '');
+            setAadharNumber(parsed.aadharNumber || '');
+            setDob(parsed.dob || '');
+            setGender(parsed.gender || '');
+            // We cannot restore File objects from localStorage
+        }
+    }, []);
+
+    useEffect(() => {
+        // Save state
+        localStorage.setItem('kyc_draft', JSON.stringify({
+            panNumber,
+            aadharNumber,
+            dob,
+            gender
+        }));
+    }, [panNumber, aadharNumber, dob, gender]);
+
+    useEffect(() => {
         const checkStatus = async () => {
             if (user) {
+                // Check Email Verification First
+                if (!user.email_confirmed_at) {
+                    toast({
+                        title: "Email not verified",
+                        description: "Please verify your email address to proceed with KYC.",
+                        variant: "destructive"
+                    });
+                    navigate('/auth/verify-email');
+                    return;
+                }
+
                 try {
-                    const status = await getKYCStatus(user.id);
-                    if (status) {
-                        setKycStatus(status.status);
-                        if (status.status === 'APPROVED') {
-                            toast({ title: "KYC Verified", description: "Your account is already verified." });
+                    const data = await getKYCStatus(user.id);
+                    if (data) {
+                        setKycStatus((data as any).status);
+                        setKycData(data);
+
+                        // Only redirect if PENDING (to show banner on dashboard)
+                        if ((data as any).status === 'PENDING') {
                             navigate('/home');
                         }
                     }
@@ -61,10 +101,21 @@ const KYCPage = () => {
                 toast({ title: "Missing details", description: "Please fill in all fields", variant: "destructive" });
                 return;
             }
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                toast({ title: "Age Restriction", description: "You must be at least 18 years old to complete KYC", variant: "destructive" });
+                return;
+            }
         }
         if (step === 2) {
-            if (!panNumber || !aadharNumber) {
-                toast({ title: "Missing details", description: "Please provide valid ID numbers", variant: "destructive" });
+            if (!panNumber || aadharNumber.length < 14) {
+                toast({ title: "Invalid details", description: "Please provide valid PAN and 12-digit Aadhaar number", variant: "destructive" });
                 return;
             }
             if (!aadharFront || !aadharBack || !panCard || !selfie) {
@@ -81,6 +132,16 @@ const KYCPage = () => {
 
     const handleSubmit = async () => {
         if (!user) return;
+
+        if (!termsAccepted) {
+            toast({
+                title: "Terms Required",
+                description: "Please accept the declaration to proceed.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setLoading(true);
         try {
             // 1. Upload Documents
@@ -92,7 +153,7 @@ const KYCPage = () => {
             // 2. Submit Data
             await submitKYC(user.id, {
                 pan_number: panNumber,
-                aadhar_number: aadharNumber,
+                aadhar_number: aadharNumber.replace(/-/g, ''),
                 dob,
                 gender,
                 document_urls: {
@@ -107,6 +168,9 @@ const KYCPage = () => {
                 title: "KYC Submitted",
                 description: "Your documents are under review. You can now access the dashboard.",
             });
+            localStorage.removeItem('kyc_draft');
+            // Invalidate cache so ProtectedRoute sees the new status
+            await queryClient.invalidateQueries({ queryKey: ['kycStatus', user.id] });
             navigate('/home');
         } catch (error: any) {
             console.error("KYC Submission Error:", error);
@@ -206,6 +270,68 @@ const KYCPage = () => {
         );
     };
 
+    if (kycStatus === 'APPROVED' && kycData) {
+        return (
+            <Layout hideHeader>
+                <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-8 px-4">
+                    <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-4 border-b border-gray-50 flex items-center gap-3">
+                            <button onClick={() => navigate('/home')} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100">
+                                <ChevronLeft className="w-5 h-5 text-slate-600" />
+                            </button>
+                            <h1 className="text-lg font-bold text-slate-800">KYC Verification</h1>
+                        </div>
+
+                        <div className="p-8 flex flex-col items-center text-center">
+                            <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50/50">
+                                <div className="w-12 h-12 bg-green-400 rounded-full flex items-center justify-center shadow-lg shadow-green-200">
+                                    <CheckCircle className="w-8 h-8 text-white" />
+                                </div>
+                            </div>
+
+                            <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Verified!</h2>
+                            <p className="text-slate-500 mb-8 max-w-xs">
+                                Your KYC documents have been approved. You have full access to all features.
+                            </p>
+
+                            <div className="w-full space-y-3">
+                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-4 text-left">
+                                    <div className="w-10 h-10 bg-white border border-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                                        <ShieldCheck className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900">Aadhaar Card</p>
+                                        <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.aadhar_number ? kycData.aadhar_number.slice(-4) : '****'}</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-4 text-left">
+                                    <div className="w-10 h-10 bg-white border border-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                                        <CreditCard className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900">PAN Card</p>
+                                        <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.pan_number ? kycData.pan_number.slice(-4) : '****'}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 bg-blue-50/50 border border-blue-100 rounded-xl p-4 text-left w-full">
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    <span className="font-bold">Note:</span> If you need to update your documents or re-verify, please contact our support team.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
+
     if (checkingStatus) {
         return (
             <Layout hideHeader>
@@ -216,21 +342,9 @@ const KYCPage = () => {
         );
     }
 
+    // Redirect handled in useEffect
     if (kycStatus === 'PENDING') {
-        return (
-            <Layout hideHeader>
-                <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
-                    <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mb-6">
-                        <Loader2 className="w-10 h-10 text-yellow-600 animate-spin" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 mb-2">KYC Under Review</h1>
-                    <p className="text-slate-500 max-w-sm mx-auto mb-8">
-                        We have received your documents and they are currently being processed. This usually takes 24-48 hours.
-                    </p>
-                    <Button onClick={() => navigate('/home')}>Go to Dashboard</Button>
-                </div>
-            </Layout>
-        );
+        return null; // Or a loader while redirecting
     }
 
     return (
@@ -292,8 +406,8 @@ const KYCPage = () => {
                                                 key={g}
                                                 onClick={() => setGender(g)}
                                                 className={`py-2 rounded-lg border text-sm font-medium transition-all ${gender === g
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
-                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
+                                                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                                                     }`}
                                             >
                                                 {g}
@@ -313,7 +427,6 @@ const KYCPage = () => {
                                         <Label className="text-xs uppercase text-slate-500 font-semibold tracking-wider">PAN Number</Label>
                                         <Input
                                             placeholder="ABCDE1234F"
-                                            uppercase
                                             maxLength={10}
                                             value={panNumber}
                                             onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
@@ -323,11 +436,29 @@ const KYCPage = () => {
                                     <div className="space-y-2">
                                         <Label className="text-xs uppercase text-slate-500 font-semibold tracking-wider">Aadhaar Number</Label>
                                         <Input
-                                            placeholder="1234 5678 9012"
-                                            maxLength={12}
-                                            type="number"
+                                            placeholder="1234-5678-9012"
+                                            maxLength={14}
+                                            type="text"
+                                            inputMode="numeric"
                                             value={aadharNumber}
-                                            onChange={(e) => setAadharNumber(e.target.value)}
+                                            onChange={(e) => {
+                                                // Remove all non-digits
+                                                let val = e.target.value.replace(/\D/g, '');
+
+                                                // Limit to 12 digits
+                                                if (val.length > 12) val = val.slice(0, 12);
+
+                                                // Add hyphens
+                                                let formatted = val;
+                                                if (val.length > 4) {
+                                                    formatted = val.slice(0, 4) + '-' + val.slice(4);
+                                                }
+                                                if (val.length > 8) {
+                                                    formatted = formatted.slice(0, 9) + '-' + formatted.slice(9);
+                                                }
+
+                                                setAadharNumber(formatted);
+                                            }}
                                             className="font-mono bg-white border-slate-200"
                                         />
                                     </div>
@@ -387,16 +518,30 @@ const KYCPage = () => {
                                     </div>
                                     <div className="grid grid-cols-4 gap-2 pt-1">
                                         {[aadharFront, aadharBack, panCard, selfie].map((f, i) => (
-                                            <div key={i} className={`aspect-square rounded-lg flex items-center justify-center ${f ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                                {f ? <CheckCircle className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                                            <div key={i} className={`aspect-square rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 ${f ? 'bg-white' : 'bg-red-50'}`}>
+                                                {f ? (
+                                                    <img
+                                                        src={URL.createObjectURL(f)}
+                                                        alt="Document Preview"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <X className="w-5 h-5 text-red-400" />
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 <div className="flex items-start gap-3 text-left p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                                    <input type="checkbox" className="mt-1 accent-blue-600" id="terms" />
-                                    <label htmlFor="terms" className="text-xs text-blue-800 font-medium">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-1 accent-blue-600 w-4 h-4 cursor-pointer"
+                                        id="terms"
+                                        checked={termsAccepted}
+                                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                                    />
+                                    <label htmlFor="terms" className="text-xs text-blue-800 font-medium cursor-pointer">
                                         I hereby declare that the proofs submitted are valid and belong to me.
                                     </label>
                                 </div>

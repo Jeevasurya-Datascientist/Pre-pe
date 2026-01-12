@@ -1,10 +1,12 @@
 
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, CheckCircle2, Upload, FileCheck } from "lucide-react";
+import { ChevronLeft, CheckCircle2, FileCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useKYC } from "@/hooks/useKYC";
 
 const KYCUpgrade = () => {
     const navigate = useNavigate();
+    const { kycData } = useKYC();
 
     return (
         <div className="min-h-screen bg-slate-50 flex justify-center w-full">
@@ -31,7 +33,9 @@ const KYCUpgrade = () => {
                             <FileCheck className="h-5 w-5 text-blue-500" />
                             <div>
                                 <p className="font-semibold text-slate-800">Aadhaar Card</p>
-                                <p className="text-xs text-green-600 font-bold">VERIFIED • •••• 9876</p>
+                                <p className="text-xs text-green-600 font-bold">
+                                    VERIFIED • •••• {kycData?.aadhar_number ? kycData.aadhar_number.slice(-4) : 'XXXX'}
+                                </p>
                             </div>
                         </div>
                         <div className="h-px bg-slate-200"></div>
@@ -39,7 +43,9 @@ const KYCUpgrade = () => {
                             <FileCheck className="h-5 w-5 text-blue-500" />
                             <div>
                                 <p className="font-semibold text-slate-800">PAN Card</p>
-                                <p className="text-xs text-green-600 font-bold">VERIFIED • •••• B12K</p>
+                                <p className="text-xs text-green-600 font-bold">
+                                    VERIFIED • •••• {kycData?.pan_number ? kycData.pan_number.slice(-4) : 'XXXX'}
+                                </p>
                             </div>
                         </div>
                     </div>
