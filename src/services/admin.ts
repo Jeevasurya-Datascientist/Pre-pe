@@ -11,12 +11,10 @@ export interface AdminAction {
 export const adminService = {
     // User Management
     async getUsers(page = 1, limit = 20, search?: string) {
+        // 1. Fetch Profiles
         let query = supabase
             .from('profiles')
-            .select(`
-        *,
-        wallets ( balance, locked_balance )
-      `)
+            .select('*', { count: 'exact' })
             .order('created_at', { ascending: false })
             .range((page - 1) * limit, page * limit - 1);
 
@@ -24,7 +22,32 @@ export const adminService = {
             query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
         }
 
-        return await query;
+        const { data: profiles, error: profilesError, count } = await query;
+        if (profilesError) throw profilesError;
+
+        if (!profiles || profiles.length === 0) {
+            return { data: [], count: 0 };
+        }
+
+        // 2. Fetch Wallets manually
+        const userIds = profiles.map(p => p.id);
+        const { data: wallets, error: walletsError } = await supabase
+            .from('wallets')
+            .select('user_id, balance, locked_balance')
+            .in('user_id', userIds);
+
+        if (walletsError) console.error("Error fetching wallets:", walletsError);
+
+        // 3. Merge
+        const data = profiles.map(p => {
+            const wallet = wallets?.find(w => w.user_id === p.id);
+            return {
+                ...p,
+                wallets: wallet || { balance: 0, locked_balance: 0 }
+            };
+        });
+
+        return { data, count };
     },
 
     async toggleUserStatus(userId: string, isActive: boolean) {

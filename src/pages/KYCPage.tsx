@@ -342,9 +342,9 @@ const KYCPage = () => {
         );
     }
 
-    // Redirect handled in useEffect
+    // Redirect handled in useEffect, but return null here to be safe and prevent flash
     if (kycStatus === 'PENDING') {
-        return null; // Or a loader while redirecting
+        return null;
     }
 
     return (

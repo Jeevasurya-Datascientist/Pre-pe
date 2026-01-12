@@ -5,7 +5,7 @@ import { getKYCStatus } from '@/services/kyc.service';
 export const useKYC = () => {
     const { user } = useAuth();
 
-    const { data: kycData, isLoading, error, refetch } = useQuery({
+    const { data: kycData, isLoading, isFetching, error, refetch } = useQuery({
         queryKey: ['kycStatus', user?.id],
         queryFn: async () => {
             if (!user) return null;
@@ -27,7 +27,7 @@ export const useKYC = () => {
         isApproved,
         isPending,
         isRejected,
-        isLoading,
+        isLoading: isLoading || isFetching,
         error,
         refetch
     };
