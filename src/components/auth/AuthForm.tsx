@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Lock, User, Smartphone } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Smartphone, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -110,156 +110,179 @@ export function AuthForm() {
         title: 'Account created!',
         description: 'Welcome to Pre Pe! You can now start using the platform.',
       });
-      navigate('/home');
+      // Redirect to KYC page after successful signup
+      navigate('/kyc');
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Smartphone className="h-6 w-6 text-primary-foreground" />
-            </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50/50 via-white to-blue-50/30">
+      <div className="w-full max-w-md space-y-8">
+
+        {/* Logo Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 shadow-lg shadow-slate-200 mb-2">
+            <Smartphone className="h-6 w-6 text-white" />
           </div>
-          <CardTitle className="text-2xl">Welcome to Pre Pe</CardTitle>
-          <CardDescription>
-            {tab === 'signin' ? 'Sign in to your account' : 'Create a new account'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={tab} onValueChange={(v) => setTab(v as 'signin' | 'signup')}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Pre Pe</h1>
+          <p className="text-slate-500">Fast, secure, and rewarding payments.</p>
+        </div>
 
-            <TabsContent value="signin" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+        <Card className="border-none shadow-2xl shadow-slate-200/50 bg-white/80 backdrop-blur-xl">
+          <CardHeader>
+            <Tabs value={tab} onValueChange={(v) => setTab(v as 'signin' | 'signup')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 p-1 bg-slate-100/50">
+                <TabsTrigger
+                  value="signin"
+                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all"
+                >
+                  Sign In
+                </TabsTrigger>
+                <TabsTrigger
+                  value="signup"
+                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all"
+                >
+                  Sign Up
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {tab === 'signin' && (
+              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-email">Email Address</Label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                      <Input
+                        id="signin-email"
+                        type="email"
+                        placeholder="name@example.com"
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    {errors.email && <p className="text-xs text-red-500 flex items-center gap-1 mt-1"><CheckCircle2 className="w-3 h-3" /> {errors.email}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <a href="#" className="text-xs text-blue-600 hover:underline">Forgot password?</a>
+                    </div>
+                    <div className="relative group">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                      <Input
+                        id="signin-password"
+                        type="password"
+                        placeholder="••••••••"
+                        className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                    {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+                  </div>
+
+                  <Button onClick={handleSignIn} disabled={loading} className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-base font-medium transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      <>Sign In <ArrowRight className="ml-2 w-4 h-4" /></>
+                    )}
+                  </Button>
                 </div>
-                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
+            {tab === 'signup' && (
+              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <div className="relative group">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                      <Input
+                        placeholder="John Doe"
+                        className="pl-10 bg-slate-50"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </div>
+                    {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <div className="relative group">
+                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                      <Input
+                        placeholder="9876543210"
+                        type="tel"
+                        maxLength={10}
+                        className="pl-10 bg-slate-50"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                  </div>
                 </div>
-                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              </div>
 
-              <Button onClick={handleSignIn} disabled={loading} className="w-full">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </TabsContent>
-
-            <TabsContent value="signup" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signup-name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="John Doe"
-                    className="pl-10"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      className="pl-10 bg-slate-50"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                 </div>
-                {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-phone">Mobile Number</Label>
-                <div className="relative">
-                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-phone"
-                    type="tel"
-                    placeholder="9876543210"
-                    className="pl-10"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    maxLength={10}
-                  />
+                <div className="space-y-2">
+                  <Label>Password</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-10 bg-slate-50"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
                 </div>
-                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                <Button onClick={handleSignUp} disabled={loading} className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-base font-medium mt-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>Create Account <ArrowRight className="ml-2 w-4 h-4" /></>
+                  )}
+                </Button>
               </div>
+            )}
+          </CardContent>
+        </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              </div>
-
-              <Button onClick={handleSignUp} disabled={loading} className="w-full">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        <p className="text-center text-sm text-slate-400">
+          By continuing, you agree to our <a href="#" className="underline hover:text-slate-600">Terms of Service</a> and <a href="#" className="underline hover:text-slate-600">Privacy Policy</a>.
+        </p>
+      </div>
     </div>
   );
 }

@@ -34,6 +34,7 @@ import ProfileSettings from "./pages/settings/ProfileSettings";
 import ThemeSettings from "./pages/settings/ThemeSettings";
 import SecuritySettings from "./pages/settings/SecuritySettings";
 import KYCUpgrade from "./pages/settings/KYCUpgrade";
+import KYCPage from "./pages/KYCPage";
 import ReferEarn from "./pages/settings/ReferEarn";
 import CashbackOffers from "./pages/settings/CashbackOffers";
 import LegalPage from "./pages/settings/LegalPage";
@@ -58,6 +59,7 @@ const App = () => (
           <Route path="/profile/theme" element={<ThemeSettings />} />
           <Route path="/profile/security" element={<SecuritySettings />} />
           <Route path="/profile/kyc" element={<KYCUpgrade />} />
+          <Route path="/kyc" element={<KYCPage />} />
           <Route path="/profile/refer" element={<ReferEarn />} />
           <Route path="/profile/offers" element={<CashbackOffers />} />
           <Route path="/legal/terms" element={<LegalPage title="Terms & Conditions" type="terms" />} />
