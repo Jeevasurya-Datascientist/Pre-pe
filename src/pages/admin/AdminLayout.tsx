@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -61,6 +61,7 @@ const AdminLayout = () => {
 
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+        { icon: Shield, label: "KYC Requests", path: "/admin/kyc" },
         { icon: Users, label: "User Management", path: "/admin/users" },
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
@@ -83,8 +84,8 @@ const AdminLayout = () => {
                             key={item.path}
                             onClick={() => navigate(item.path)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path
-                                    ? "bg-blue-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                                ? "bg-blue-600 text-white"
+                                : "text-slate-400 hover:bg-slate-800 hover:text-white"
                                 }`}
                         >
                             <item.icon className="h-5 w-5" />

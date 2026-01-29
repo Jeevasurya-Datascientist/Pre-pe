@@ -4,15 +4,17 @@ import { ArrowLeft, AlertTriangle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKYC } from '@/hooks/useKYC';
 import { Button } from '../ui/button';
+import { BottomNav } from '@/components/home/BottomNav';
 
 interface LayoutProps {
   children: React.ReactNode;
   title?: string;
   showBack?: boolean;
   hideHeader?: boolean;
+  showBottomNav?: boolean;
 }
 
-export const Layout = ({ children, title, showBack, hideHeader }: LayoutProps) => {
+export const Layout = ({ children, title, showBack, hideHeader, showBottomNav }: LayoutProps) => {
   const navigate = useNavigate();
   const { status, isApproved } = useKYC();
 
@@ -57,7 +59,8 @@ export const Layout = ({ children, title, showBack, hideHeader }: LayoutProps) =
         ) : (
           <Header />
         ))}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-20">{children}</main>
+        {showBottomNav && <BottomNav />}
       </div>
     </div>
   );

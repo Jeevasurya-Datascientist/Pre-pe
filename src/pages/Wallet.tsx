@@ -22,7 +22,7 @@ const WalletPage = () => {
   }
 
   return (
-    <Layout>
+    <Layout showBottomNav>
       <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">My Wallet</h1>

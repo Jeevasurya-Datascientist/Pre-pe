@@ -4,21 +4,41 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Upload, ShieldCheck, User, CreditCard, ChevronRight, ChevronLeft, Camera, X, Loader2, AlertCircle } from 'lucide-react';
+import {
+    CheckCircle,
+    Upload,
+    ShieldCheck,
+    User,
+    CreditCard,
+    ChevronRight,
+    ChevronLeft,
+    Camera,
+    X,
+    AlertCircle,
+    XCircle,
+    Loader2
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { submitKYC, uploadKYCDocument, getKYCStatus } from '@/services/kyc.service';
+import { submitKYC, uploadKYCDocument } from '@/services/kyc.service';
+import { useKYC } from '@/hooks/useKYC';
+import { encryptSensitiveData } from '@/lib/crypto';
+import { Separator } from '@/components/ui/separator';
 
-const KYCPage = () => {
+export const KYCPage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const { toast } = useToast();
+    const { status: kycStatusFromHook, kycData: hookData, isLoading: hookLoading } = useKYC();
+
+    // Local state for UI
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
-    const [checkingStatus, setCheckingStatus] = useState(true);
+
+    // Sync with hook data
     const [kycStatus, setKycStatus] = useState<string | null>(null);
     const [kycData, setKycData] = useState<any>(null);
 
@@ -35,65 +55,27 @@ const KYCPage = () => {
     const [panCard, setPanCard] = useState<File | null>(null);
     const [selfie, setSelfie] = useState<File | null>(null);
 
+    // Effect to check email and handle redirection based on status
     useEffect(() => {
-        // Load saved state
-        const savedData = localStorage.getItem('kyc_draft');
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            setPanNumber(parsed.panNumber || '');
-            setAadharNumber(parsed.aadharNumber || '');
-            setDob(parsed.dob || '');
-            setGender(parsed.gender || '');
-            // We cannot restore File objects from localStorage
+        if (!user) return;
+
+        // 1. Check Email
+        if (!user.email_confirmed_at) {
+            toast({
+                title: "Email not verified",
+                description: "Please verify your email address to proceed with KYC.",
+                variant: "destructive"
+            });
+            navigate('/auth/verify-email');
+            return;
         }
-    }, []);
 
-    useEffect(() => {
-        // Save state
-        localStorage.setItem('kyc_draft', JSON.stringify({
-            panNumber,
-            aadharNumber,
-            dob,
-            gender
-        }));
-    }, [panNumber, aadharNumber, dob, gender]);
-
-    useEffect(() => {
-        const checkStatus = async () => {
-            if (user) {
-                // Check Email Verification First
-                if (!user.email_confirmed_at) {
-                    toast({
-                        title: "Email not verified",
-                        description: "Please verify your email address to proceed with KYC.",
-                        variant: "destructive"
-                    });
-                    navigate('/auth/verify-email');
-                    return;
-                }
-
-                try {
-                    const data = await getKYCStatus(user.id);
-                    if (data) {
-                        setKycStatus((data as any).status);
-                        setKycData(data);
-
-                        // Only redirect if PENDING (to show banner on dashboard)
-                        if ((data as any).status === 'PENDING') {
-                            navigate('/home');
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error checking KYC:", error);
-                } finally {
-                    setCheckingStatus(false);
-                }
-            } else {
-                setCheckingStatus(false);
-            }
-        };
-        checkStatus();
-    }, [user, navigate, toast]);
+        // 2. Sync Hook Data
+        if (!hookLoading) {
+            setKycStatus(kycStatusFromHook);
+            setKycData(hookData);
+        }
+    }, [user, navigate, toast, kycStatusFromHook, hookData, hookLoading]);
 
     const handleNext = () => {
         if (step === 1) {
@@ -114,7 +96,7 @@ const KYCPage = () => {
             }
         }
         if (step === 2) {
-            if (!panNumber || aadharNumber.length < 14) {
+            if (!panNumber || aadharNumber.length < 12) {
                 toast({ title: "Invalid details", description: "Please provide valid PAN and 12-digit Aadhaar number", variant: "destructive" });
                 return;
             }
@@ -150,10 +132,14 @@ const KYCPage = () => {
             const panPath = await uploadKYCDocument(user.id, panCard!, 'pan_card');
             const selfiePath = await uploadKYCDocument(user.id, selfie!, 'selfie');
 
-            // 2. Submit Data
+            // 2. Securely Encrypt Sensitive Numbers
+            const encryptedPan = await encryptSensitiveData(panNumber);
+            const encryptedAadhar = await encryptSensitiveData(aadharNumber.replace(/\s/g, ''));
+
+            // 3. Submit Data
             await submitKYC(user.id, {
-                pan_number: panNumber,
-                aadhar_number: aadharNumber.replace(/-/g, ''),
+                pan_number: encryptedPan,
+                aadhar_number: encryptedAadhar,
                 dob,
                 gender,
                 document_urls: {
@@ -302,7 +288,7 @@ const KYCPage = () => {
                                     <div>
                                         <p className="font-semibold text-slate-900">Aadhaar Card</p>
                                         <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.aadhar_number ? kycData.aadhar_number.slice(-4) : '****'}</span>
+                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.decrypted_aadhar ? kycData.decrypted_aadhar.slice(-4) : '****'}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -314,7 +300,7 @@ const KYCPage = () => {
                                     <div>
                                         <p className="font-semibold text-slate-900">PAN Card</p>
                                         <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.pan_number ? kycData.pan_number.slice(-4) : '****'}</span>
+                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.decrypted_pan ? kycData.decrypted_pan.slice(-4) : '****'}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -332,7 +318,7 @@ const KYCPage = () => {
         );
     }
 
-    if (checkingStatus) {
+    if (hookLoading) {
         return (
             <Layout hideHeader>
                 <div className="min-h-screen flex items-center justify-center">
@@ -342,9 +328,57 @@ const KYCPage = () => {
         );
     }
 
-    // Redirect handled in useEffect, but return null here to be safe and prevent flash
     if (kycStatus === 'PENDING') {
-        return null;
+        return (
+            <Layout hideHeader>
+                <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-8 px-4">
+                    <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-4 border-b border-gray-50 flex items-center gap-3">
+                            <h1 className="text-lg font-bold text-slate-800">KYC Verification</h1>
+                        </div>
+
+                        <div className="p-8 flex flex-col items-center text-center">
+                            <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-amber-50/50">
+                                <div className="w-12 h-12 bg-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-200">
+                                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                </div>
+                            </div>
+
+                            <h2 className="text-2xl font-bold text-slate-900 mb-2">Verification Pending</h2>
+                            <p className="text-slate-500 mb-8 max-w-xs">
+                                Your KYC documents have been submitted and are currently under review.
+                                <br /><br />
+                                <span className="font-semibold text-slate-700">Please wait for admin approval.</span>
+                            </p>
+
+                            <div className="w-full space-y-3">
+                                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-left">
+                                    <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4" />
+                                        Access Restricted
+                                    </p>
+                                    <p className="text-xs text-amber-700 mt-1">
+                                        Full wallet features and limits will be unlocked once your verification is approved.
+                                    </p>
+                                </div>
+                                <Button
+                                    className="w-full" variant="outline"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Check Status Again
+                                </Button>
+                                <Button
+                                    className="w-full"
+                                    onClick={() => navigate('/home')}
+                                >
+                                    Go to Dashboard
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Layout >
+        );
     }
 
     return (

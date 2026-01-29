@@ -9,13 +9,18 @@ import { getOperators } from '@/services/operator.service';
 import { fetchBillDetails, processPostpaidBill } from '@/services/recharge.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
+import { useKYC } from '@/hooks/useKYC';
 import { useToast } from '@/hooks/use-toast';
+import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 import type { Operator, BillDetails } from '@/types/recharge.types';
 
 export function PostpaidBillForm() {
   const { user } = useAuth();
   const { availableBalance, refetch: refetchWallet } = useWallet();
+  const { isApproved } = useKYC();
   const { toast } = useToast();
+
+  const [showKYCNudge, setShowKYCNudge] = useState(false);
 
   const [mobileNumber, setMobileNumber] = useState('');
   const [selectedOperator, setSelectedOperator] = useState<string>('');
@@ -83,6 +88,11 @@ export function PostpaidBillForm() {
         description: 'You need to sign in to pay bills',
         variant: 'destructive',
       });
+      return;
+    }
+
+    if (!isApproved) {
+      setShowKYCNudge(true);
       return;
     }
 
@@ -178,7 +188,7 @@ export function PostpaidBillForm() {
             </div>
           </div>
 
-          <Button 
+          <Button
             onClick={handleFetchBill}
             variant="secondary"
             disabled={fetchingBill || !mobileNumber || !selectedOperator}
@@ -233,7 +243,7 @@ export function PostpaidBillForm() {
               <span className="text-2xl font-bold text-primary">₹{billDetails.amount}</span>
             </div>
 
-            <Button 
+            <Button
               onClick={handlePayBill}
               disabled={processing}
               className="w-full"
@@ -260,6 +270,12 @@ export function PostpaidBillForm() {
           </CardContent>
         </Card>
       )}
+
+      <KYCNudgeDialog
+        isOpen={showKYCNudge}
+        onClose={() => setShowKYCNudge(false)}
+        featureName="Postpaid Bill Payment"
+      />
     </div>
   );
 }

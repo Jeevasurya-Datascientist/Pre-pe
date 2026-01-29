@@ -14,11 +14,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import type { Operator, Circle, RechargePlan } from '@/types/recharge.types';
+import { useKYC } from '@/hooks/useKYC';
+import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 
 export function MobileRechargeForm() {
   const { user } = useAuth();
   const { availableBalance, refetch: refetchWallet } = useWallet();
+  const { isApproved } = useKYC();
   const { toast } = useToast();
+
+  const [showKYCNudge, setShowKYCNudge] = useState(false);
 
   const [mobileNumber, setMobileNumber] = useState('');
   const [selectedOperator, setSelectedOperator] = useState<string>('');
@@ -135,6 +140,11 @@ export function MobileRechargeForm() {
         description: 'You need to sign in to make a recharge',
         variant: 'destructive',
       });
+      return;
+    }
+
+    if (!isApproved) {
+      setShowKYCNudge(true);
       return;
     }
 
@@ -376,6 +386,12 @@ export function MobileRechargeForm() {
           )}
         </div>
       )}
+
+      <KYCNudgeDialog
+        isOpen={showKYCNudge}
+        onClose={() => setShowKYCNudge(false)}
+        featureName="Mobile Recharge"
+      />
     </div>
   );
 }

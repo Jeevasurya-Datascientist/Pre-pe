@@ -10,9 +10,13 @@ import {
   Droplets,
   ShieldCheck,
   Wifi,
-  Receipt
+  Receipt,
+  HandCoins
 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+import { useKYC } from "@/hooks/useKYC";
+import { useToast } from "@/hooks/use-toast";
 
 interface ServiceItemProps {
   icon: React.ElementType;
@@ -20,18 +24,24 @@ interface ServiceItemProps {
   path: string;
 }
 
-const ServiceItem = ({ icon: Icon, label, path }: ServiceItemProps) => (
-  <Link to={path} className="flex flex-col items-center gap-2">
-    <div className="w-14 h-14 bg-green-50/50 rounded-xl flex items-center justify-center transition-all hover:bg-green-100 hover:scale-105 active:scale-95 shadow-sm border border-green-100/50">
-      <Icon className="w-7 h-7 text-green-700" strokeWidth={1.5} />
-    </div>
-    <span className="text-[11px] font-medium text-gray-700 text-center leading-tight tracking-tight mt-1">{label}</span>
-  </Link>
-);
+const ServiceItem = ({ icon: Icon, label, path }: ServiceItemProps) => {
+  return (
+    <Link
+      to={path}
+      className="flex flex-col items-center gap-2 group"
+    >
+      <div className="w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-sm border bg-green-50/50 group-hover:bg-green-100 group-hover:scale-105 active:scale-95 border-green-100/50">
+        <Icon className="w-7 h-7 text-green-700" strokeWidth={1.5} />
+      </div>
+      <span className="text-[11px] font-medium text-gray-700 text-center leading-tight tracking-tight mt-1">{label}</span>
+    </Link>
+  );
+};
 
 export const ServiceGrid = () => {
   const services = [
     { icon: Smartphone, label: "Prepaid", path: "/mobile-recharge" }, // Matches 'Prepaid'
+    { icon: HandCoins, label: "Borrow", path: "/dnpl" },
     { icon: Tv, label: "DTH", path: "/dth-recharge" }, // Matches 'DTH'
     { icon: Lightbulb, label: "Electricity", path: "/services/electricity" }, // Matches 'Electricity'
     { icon: Play, label: "Redeem Code", path: "/services/redeem-code" }, // Matches 'Redeem Code' (Google Play icon usually)

@@ -11,59 +11,27 @@ export class AuthService {
     ) { }
 
     async validateUser(email: string, pass: string): Promise<any> {
-        const user = await this.prisma.user.findUnique({ where: { email } });
-        if (user && (await bcrypt.compare(pass, user.password))) {
-            const { password, ...result } = user;
-            return result;
-        }
+        // Legacy auth logic removed. Use Supabase Auth.
         return null;
     }
 
     async login(user: any) {
-        const payload = { email: user.email, sub: user.id, role: user.role };
+        // This generates a custom JWT. Might still be useful if we pass a Supabase user.
+        const payload = { email: user.email, sub: user.id || user.user_id, role: user.role };
         return {
             access_token: this.jwtService.sign(payload),
             user: {
-                id: user.id,
+                id: user.id || user.user_id,
                 email: user.email,
                 phone: user.phone,
-                fullName: user.email.split('@')[0], // Placeholder name logic
+                fullName: user.email ? user.email.split('@')[0] : 'User',
                 role: user.role,
             }
         };
     }
 
     async register(data: any) {
-        // Check if user exists
-        const existingUser = await this.prisma.user.findFirst({
-            where: {
-                OR: [
-                    { email: data.email },
-                    { phone: data.phone }
-                ]
-            }
-        });
-
-        if (existingUser) {
-            throw new ConflictException('User with this email or phone already exists');
-        }
-
-        const hashedPassword = await bcrypt.hash(data.password, 10);
-        const user = await this.prisma.user.create({
-            data: {
-                email: data.email,
-                password: hashedPassword,
-                phone: data.phone,
-                // Create wallet for new user
-                wallet: {
-                    create: {
-                        balance: 0,
-                        lockedBalance: 0
-                    }
-                }
-            },
-        });
-
-        return this.login(user);
+        // Legacy registration logic removed. Use Supabase Auth.
+        throw new ConflictException('Register via Supabase Auth');
     }
 }

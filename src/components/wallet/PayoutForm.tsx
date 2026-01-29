@@ -9,22 +9,16 @@ import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { validateBankAccount } from '@/services/kwikApiService';
 import { withdrawBalance } from '@/services/wallet.service';
-import { Editor } from "@tinymce/tinymce-react";
-
-<Editor
-    init={{
-        height: 300,
-        menubar: false,
-        plugins: ["autoresize", "lists", "link"],
-        toolbar: "bold italic | bullist numlist | link",
-    }}
-/>
+import { useKYC } from '@/hooks/useKYC';
+import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 
 export function PayoutForm() {
     const { user } = useAuth();
     const { availableBalance, refetch: refetchWallet } = useWallet();
+    const { isApproved } = useKYC();
     const { toast } = useToast();
 
+    const [showKYCNudge, setShowKYCNudge] = useState(false);
     const [accountNo, setAccountNo] = useState('');
     const [ifsc, setIfsc] = useState('');
     const [amount, setAmount] = useState('');
@@ -35,6 +29,11 @@ export function PayoutForm() {
     const [processing, setProcessing] = useState(false);
 
     const handleVerify = async () => {
+        if (!isApproved) {
+            setShowKYCNudge(true);
+            return;
+        }
+
         if (!accountNo || !ifsc || accountNo.length < 9 || ifsc.length !== 11) {
             toast({
                 title: 'Invalid details',
@@ -226,6 +225,12 @@ export function PayoutForm() {
                     * Verification charges may apply. Ensure details are correct.
                 </p>
             </CardContent>
+
+            <KYCNudgeDialog
+                isOpen={showKYCNudge}
+                onClose={() => setShowKYCNudge(false)}
+                featureName="Bank Payout"
+            />
         </Card>
     );
 }

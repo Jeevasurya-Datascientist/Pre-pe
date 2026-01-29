@@ -23,12 +23,15 @@ import {
 } from "@/components/ui/dialog";
 import { upiService } from "@/services/upi";
 import { QRCodeSVG } from "qrcode.react";
+import { useKYC } from "@/hooks/useKYC";
+import { KYCNudgeDialog } from "@/components/kyc/KYCNudgeDialog";
 
 export const DTHEnterDetails = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { user } = useAuth();
     const { availableBalance, refetch: refetchWallet } = useWallet();
+    const { isApproved } = useKYC();
     const { toast } = useToast();
 
     const operatorId = searchParams.get('operator');
@@ -52,6 +55,7 @@ export const DTHEnterDetails = () => {
         qrData: string;
     } | null>(null);
     const [polling, setPolling] = useState(false);
+    const [showKYCNudge, setShowKYCNudge] = useState(false);
 
     useEffect(() => {
         const loadOp = async () => {
@@ -89,6 +93,11 @@ export const DTHEnterDetails = () => {
 
     const handleProceedToPay = async () => {
         if (!user || !operator) return;
+
+        if (!isApproved) {
+            setShowKYCNudge(true);
+            return;
+        }
 
         const rechargeAmount = parseFloat(amount || "0");
 
@@ -402,6 +411,12 @@ export const DTHEnterDetails = () => {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <KYCNudgeDialog
+                isOpen={showKYCNudge}
+                onClose={() => setShowKYCNudge(false)}
+                featureName="DTH Recharge"
+            />
         </Layout>
     );
 };

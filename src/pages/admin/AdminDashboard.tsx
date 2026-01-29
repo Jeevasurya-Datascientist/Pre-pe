@@ -11,6 +11,8 @@ const AdminDashboard = () => {
         totalUsers: 0,
         totalVolume: 0,
         pendingTxns: 0,
+        pendingKYC: 0,
+        pendingManualFunds: 0,
         successRate: 0
     });
     const [recentTxns, setRecentTxns] = useState<any[]>([]);
@@ -28,6 +30,9 @@ const AdminDashboard = () => {
             // In a real app, use a dedicated RPC function "get_admin_stats" for performance
             const users = await adminService.getUsers(1, 1);
             const allTxns = await adminService.getTransactions();
+            const pendingKYC = await adminService.getPendingKYCCount();
+
+            const pendingManual = await adminService.getPendingManualFundCount();
 
             const txns = allTxns.data || [];
             const successful = txns.filter(t => t.status === 'SUCCESS');
@@ -40,6 +45,8 @@ const AdminDashboard = () => {
                 totalUsers: users.count || 0,
                 totalVolume: totalVol,
                 pendingTxns: pending.length,
+                pendingKYC,
+                pendingManualFunds: pendingManual,
                 successRate: Math.round(rate)
             });
 
@@ -74,7 +81,13 @@ const AdminDashboard = () => {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
-                        <span className="text-2xl font-bold">{stats.pendingTxns}</span>
+                        <div className="flex flex-col items-end">
+                            <span className="text-2xl font-bold">{stats.pendingTxns} Txns</span>
+                            <div className="flex gap-2">
+                                <span className="text-xs font-medium text-blue-600">{stats.pendingKYC} KYC</span>
+                                <span className="text-xs font-medium text-indigo-600">{stats.pendingManualFunds} Manual</span>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-xs text-muted-foreground flex items-center text-yellow-600">

@@ -23,12 +23,18 @@ enum AppRole {
   RETAILER
 }
 
+enum RechargeStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 //////////////////////////////////////
 // PROFILES (Supabase user profile)
 //////////////////////////////////////
 model profiles {
-  id         String   @id @db.Uuid
-  user_id    String   @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @unique @db.Uuid
   email      String?
   full_name  String?
   phone      String?
@@ -37,6 +43,11 @@ model profiles {
 
   wallets    wallets[]
   user_roles user_roles[]
+  transactions transactions[]
+  upi_transactions upi_transactions[]
+  loans        loans[]
+  manual_fund_requests manual_fund_requests[]
+  kyc_verifications kyc_verifications[]
 
   @@map("profiles")
 }
@@ -45,7 +56,7 @@ model profiles {
 // USER ROLES
 //////////////////////////////////////
 model user_roles {
-  id         String   @id @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
   user_id    String   @db.Uuid
   role       AppRole
   created_at DateTime @db.Timestamptz
@@ -59,10 +70,10 @@ model user_roles {
 // WALLETS
 //////////////////////////////////////
 model wallets {
-  id             String   @id @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
   user_id        String   @db.Uuid
-  balance        Decimal  @db.Numeric
-  locked_balance Decimal  @db.Numeric
+  balance        Decimal  @db.Decimal
+  locked_balance Decimal  @db.Decimal
   created_at     DateTime @db.Timestamptz
   updated_at     DateTime @db.Timestamptz
 
@@ -76,12 +87,12 @@ model wallets {
 // WALLET LEDGER (CR / DR)
 //////////////////////////////////////
 model wallet_ledger {
-  id            String   @id @db.Uuid
+  id            String   @id @default(uuid()) @db.Uuid
   wallet_id     String   @db.Uuid
   transaction_id String? @db.Uuid
   type          String
-  amount        Decimal  @db.Numeric
-  balance_after Decimal  @db.Numeric
+  amount        Decimal  @db.Decimal
+  balance_after Decimal  @db.Decimal
   description   String?
   created_at    DateTime @db.Timestamptz
 
@@ -94,11 +105,11 @@ model wallet_ledger {
 // MAIN TRANSACTIONS (Recharge / DTH / Bill)
 //////////////////////////////////////
 model transactions {
-  id                 String   @id @db.Uuid
+  id                 String   @id @default(uuid()) @db.Uuid
   user_id            String   @db.Uuid
   type               String
   service_type       String
-  amount             Decimal  @db.Numeric
+  amount             Decimal  @db.Decimal
   status             String
   operator_id        String?
   operator_name      String?
@@ -120,9 +131,9 @@ model transactions {
 // UPI TRANSACTIONS (Wallet Topups)
 //////////////////////////////////////
 model upi_transactions {
-  id             String   @id @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
   user_id        String   @db.Uuid
-  amount         Decimal  @db.Numeric
+  amount         Decimal  @db.Decimal
   upi_ref_id     String?
   gateway_status String?
   app_used       String?
@@ -140,13 +151,13 @@ model upi_transactions {
 // COMMISSION SLABS
 //////////////////////////////////////
 model commission_slabs {
-  id               String   @id @db.Uuid
+  id               String   @id @default(uuid()) @db.Uuid
   operator_id      String
   service_type     String
-  min_amount       Decimal  @db.Numeric
-  max_amount       Decimal  @db.Numeric
+  min_amount       Decimal  @db.Decimal
+  max_amount       Decimal  @db.Decimal
   commission_type  String
-  commission_value Decimal  @db.Numeric
+  commission_value Decimal  @db.Decimal
   is_active        Boolean
   created_at       DateTime @db.Timestamptz
   updated_at       DateTime @db.Timestamptz
@@ -155,14 +166,73 @@ model commission_slabs {
 }
 
 //////////////////////////////////////
+// LOANS (Do Now Pay Later)
+//////////////////////////////////////
+model loans {
+  id               String   @id @default(uuid()) @db.Uuid
+  user_id          String   @db.Uuid
+  amount           Decimal  @db.Decimal
+  repayment_date   DateTime @db.Timestamptz
+  bounce_charges   Decimal  @db.Decimal
+  status           String   @default("ACTIVE")
+  nbfc_name        String?
+  created_at       DateTime @default(now()) @db.Timestamptz
+  updated_at       DateTime @updatedAt @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("loans")
+}
+
+//////////////////////////////////////
 // ADMIN AUDIT LOGS
 //////////////////////////////////////
 model admin_audit_logs {
-  id         String   @id @db.Uuid
-  admin_id   String   @db.Uuid
-  action     String
-  metadata   Json?
-  created_at DateTime @db.Timestamptz
+  id          String   @id @default(uuid()) @db.Uuid
+  admin_id    String   @db.Uuid
+  action_type String
+  target_id   String?  @db.Uuid
+  details     Json?
+  ip_address  String?
+  created_at  DateTime @db.Timestamptz
 
   @@map("admin_audit_logs")
+}
+
+//////////////////////////////////////
+// KYC VERIFICATIONS
+//////////////////////////////////////
+model kyc_verifications {
+  id            String   @id @default(uuid()) @db.Uuid
+  user_id       String   @db.Uuid
+  pan_number    String
+  aadhar_number String
+  dob           DateTime? @db.Date
+  gender        String?
+  document_urls Json?    @default("{}")
+  status        String   @default("PENDING")
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("kyc_verifications")
+}
+
+//////////////////////////////////////
+// MANUAL FUND REQUESTS
+//////////////////////////////////////
+model manual_fund_requests {
+  id             String   @id @default(uuid()) @db.Uuid
+  user_id        String   @db.Uuid
+  amount         Decimal  @db.Decimal
+  transaction_id String
+  status         String   @default("PENDING")
+  admin_notes    String?
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("manual_fund_requests")
 }

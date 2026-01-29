@@ -6,14 +6,15 @@ import {
     User, Mail, Shield, ChevronRight, Palette, Lock,
     FileText, Headphones, Share2, Tag, FileCheck,
     History, LogOut, Facebook, Youtube, Send, Instagram,
-    Twitter,
-    ChevronLeft
+    Twitter, ChevronLeft, Loader2, ShieldCheck
 } from "lucide-react";
+import { useKYC } from "@/hooks/useKYC";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 
 const ProfilePage = () => {
     const { user, signOut } = useAuth();
+    const { status: kycStatus, isLoading: kycLoading } = useKYC();
     const navigate = useNavigate();
 
     const getInitials = () => {
@@ -75,10 +76,30 @@ const ProfilePage = () => {
                             <AvatarImage src={user?.user_metadata?.avatar_url} />
                             <AvatarFallback className="bg-blue-100 text-blue-600 font-bold text-xl">{getInitials()}</AvatarFallback>
                         </Avatar>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1">
                             <h2 className="text-lg font-bold text-slate-800">{user?.user_metadata?.full_name || 'User Name'}</h2>
-                            <p className="text-sm text-slate-500 font-medium">+91 {user?.phone || user?.user_metadata?.phone || ''}</p>
+                            <p className="text-sm text-slate-500 font-medium">{user?.phone || user?.user_metadata?.phone || ''}</p>
                             <p className="text-xs text-slate-400">{user?.email}</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            {kycLoading ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+                            ) : kycStatus === 'APPROVED' ? (
+                                <div className="p-2 bg-green-50 text-green-600 rounded-full border border-green-100 flex items-center gap-1">
+                                    <ShieldCheck className="w-5 h-5" />
+                                </div>
+                            ) : kycStatus === 'PENDING' ? (
+                                <div className="p-2 bg-amber-50 text-amber-600 rounded-full border border-amber-100">
+                                    <History className="w-5 h-5" />
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-slate-50 text-slate-400 rounded-full border border-slate-100">
+                                    <Shield className="w-5 h-5" />
+                                </div>
+                            )}
+                            <span className="text-[10px] font-bold mt-1 text-slate-500">
+                                {kycStatus === 'APPROVED' ? 'VERIFIED' : kycStatus === 'PENDING' ? 'PENDING' : 'UPGRADE'}
+                            </span>
                         </div>
                     </div>
 

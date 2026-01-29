@@ -4,10 +4,22 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { useState } from "react";
+import { useKYC } from "@/hooks/useKYC";
+import { KYCNudgeDialog } from "@/components/kyc/KYCNudgeDialog";
 
 export const RedeemCodePage = () => {
     const [phone, setPhone] = useState("");
     const [amount, setAmount] = useState("");
+    const { isApproved } = useKYC();
+    const [showKYCNudge, setShowKYCNudge] = useState(false);
+
+    const handleSubmit = () => {
+        if (!isApproved) {
+            setShowKYCNudge(true);
+            return;
+        }
+        // Proceed with logic
+    };
 
     return (
         <Layout title="Google Play Redeem" showBack>
@@ -54,11 +66,19 @@ export const RedeemCodePage = () => {
                         />
                     </div>
 
-                    <Button className="w-full h-12 bg-slate-400 hover:bg-slate-500 text-white font-medium rounded-xl text-base shadow-none">
+                    <Button
+                        className="w-full h-12 bg-slate-400 hover:bg-slate-500 text-white font-medium rounded-xl text-base shadow-none"
+                        onClick={handleSubmit}
+                    >
                         Submit
                     </Button>
                 </div>
 
+                <KYCNudgeDialog
+                    isOpen={showKYCNudge}
+                    onClose={() => setShowKYCNudge(false)}
+                    featureName="Google Play Redemption"
+                />
             </div>
         </Layout>
     );

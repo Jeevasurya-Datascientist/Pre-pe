@@ -125,7 +125,7 @@ export function WalletDashboard() {
               <p className="text-muted-foreground">
                 Add money securely via UPI
               </p>
-              <Button className="w-full" onClick={() => navigate('/wallet/topup')}>
+              <Button className="w-full" onClick={() => navigate('/fund-request')}>
                 Add Money
               </Button>
             </div>
@@ -133,7 +133,12 @@ export function WalletDashboard() {
             {/* Quick Add Amounts */}
             <div className="mt-4 grid grid-cols-4 gap-2">
               {[100, 200, 500, 1000].map((amt) => (
-                <Button key={amt} variant="outline" disabled>
+                <Button
+                  key={amt}
+                  variant="outline"
+                  onClick={() => navigate('/fund-request', { state: { amount: amt } })}
+                  className="hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
                   ₹{amt}
                 </Button>
               ))}

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LogOut, LayoutDashboard, FileText, Shield } from 'lucide-react';
+import { LogOut, LayoutDashboard, FileText, Shield, Users, History, Percent } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export const AdminLayout = () => {
@@ -9,7 +9,10 @@ export const AdminLayout = () => {
 
     const menuItems = [
         { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/admin/kyc', icon: FileText, label: 'KYC Requests' },
+        { path: '/admin/kyc', icon: Shield, label: 'KYC Requests' },
+        { path: '/admin/users', icon: Users, label: 'User Management' },
+        { path: '/admin/transactions', icon: History, label: 'Transactions' },
+        { path: '/admin/commissions', icon: Percent, label: 'Commissions' },
     ];
 
     return (
@@ -18,9 +21,7 @@ export const AdminLayout = () => {
             <div className="w-64 bg-slate-900 text-white flex flex-col fixed h-full z-10">
                 <div className="p-6 border-b border-slate-800">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <Shield className="w-5 h-5 text-white" />
-                        </div>
+                        <img src="/logo.png" alt="Admin" className="w-8 h-8 rounded-lg bg-white object-contain p-0.5" />
                         <h1 className="font-bold text-lg tracking-tight">PrePe Admin</h1>
                     </div>
                 </div>

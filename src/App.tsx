@@ -4,7 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
-import Auth from "./pages/Auth";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
 
 import ContactPage from "./pages/ContactPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -27,8 +28,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import CommissionManager from "./pages/admin/CommissionManager";
 import TransactionsAdmin from "./pages/admin/TransactionsAdmin";
-import TopUpPage from "./pages/TopUpPage";
+import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
+import DNPLPage from "./pages/DNPLPage";
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
 import LedgerPage from "./pages/LedgerPage";
@@ -46,6 +48,7 @@ import MagicLinkPage from "./pages/auth/MagicLinkPage";
 import CashbackOffers from "./pages/settings/CashbackOffers";
 import LegalPage from "./pages/settings/LegalPage";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -55,10 +58,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
 
 
-          <Route path="/" element={<Auth />} />
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
           <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
@@ -93,7 +99,8 @@ const App = () => (
             <Route path="/postpaid" element={<Postpaid />} />
 
             <Route path="/wallet" element={<Wallet />} />
-            <Route path="/wallet/topup" element={<TopUpPage />} />
+            <Route path="/dnpl" element={<DNPLPage />} />
+            <Route path="/fund-request" element={<FundRequestPage />} />
             <Route path="/wallet/ledger" element={<LedgerPage />} />
             <Route path="/reports/history" element={<HistoryPage />} />
             <Route path="/transactions" element={<Transactions />} />

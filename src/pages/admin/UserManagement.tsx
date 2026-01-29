@@ -55,8 +55,8 @@ const UserManagement = () => {
         setLoading(true);
         try {
             // Logic to debounce search should be added in real app
-            const { data, error } = await adminService.getUsers(page, 20, search);
-            if (error) throw error;
+            const { data } = await adminService.getUsers(page, 20, search);
+            // if (error) throw error; // Service throws errors, doesn't return them
             setUsers(data || []);
         } catch (e) {
             toast.error("Failed to load users");
@@ -139,10 +139,21 @@ const UserManagement = () => {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                Active
-                                            </Badge>
-                                            {/* TODO: Real status check */}
+                                            <div className="flex flex-col gap-1">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={
+                                                        user.kyc_status === 'APPROVED' ? "bg-green-50 text-green-700 border-green-200" :
+                                                            user.kyc_status === 'PENDING' ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                                                "bg-slate-50 text-slate-500 border-slate-200"
+                                                    }
+                                                >
+                                                    {user.kyc_status || 'NOT SUBMITTED'}
+                                                </Badge>
+                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
+                                                    Active
+                                                </Badge>
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             {new Date(user.created_at).toLocaleDateString()}

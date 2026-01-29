@@ -49,9 +49,7 @@ export function Header() {
 
         {/* Center: Logo & Name */}
         <Link to="/home" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
-            <Smartphone className="h-5 w-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="PrePe" className="h-8 w-8 rounded-lg object-contain bg-white" />
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">
             Pre Pe
           </h1>

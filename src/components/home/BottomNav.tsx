@@ -1,4 +1,4 @@
-import { Home, FileText, Tag, Settings, CreditCard } from "lucide-react";
+import { Home, FileText, User, Wallet, Grid } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -10,39 +10,59 @@ export const BottomNav = () => {
 
     const navItems = [
         { icon: Home, label: "Home", path: "/home" },
+        { icon: Wallet, label: "Services", path: "/mobile-recharge" }, // Using Wallet/Services icon leading to recharge or general services
         { icon: FileText, label: "History", path: "/transactions" },
-        { icon: Tag, label: "Offers", path: "/offers" },
-        { icon: Settings, label: "Settings", path: "/profile" },
+        { icon: User, label: "Profile", path: "/profile" },
     ];
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
-            <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 text-white rounded-full py-3 px-6 shadow-2xl flex justify-between items-center ring-1 ring-white/10">
-                {navItems.map((item) => {
-                    const active = isActive(item.path);
-                    return (
-                        <button
-                            key={item.path}
-                            onClick={() => navigate(item.path)}
-                            className={cn(
-                                "relative flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300",
-                                active ? "text-white" : "text-slate-400 hover:text-slate-200"
-                            )}
-                        >
-                            {active && (
-                                <span className="absolute -top-1 w-1 h-1 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
-                            )}
-                            <item.icon
-                                className={cn(
-                                    "w-6 h-6 transition-transform duration-300",
-                                    active ? "scale-110" : "scale-100"
-                                )}
-                                strokeWidth={active ? 2.5 : 2}
-                            />
-                            {/* Optional: Tooltip or Label - Keeping it icon-only for cleaner 'island' look, or minimal label */}
-                        </button>
-                    );
-                })}
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+            {/* 
+              Constrain width to match the app layout (max-w-md). 
+              pointer-events-auto re-enables clicks.
+            */}
+            <div className="w-full max-w-md pointer-events-auto">
+                <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-6 py-3 pb-safe-area-bottom">
+                    <div className="flex justify-between items-center">
+                        {navItems.map((item) => {
+                            const active = isActive(item.path);
+                            return (
+                                <button
+                                    key={item.path}
+                                    onClick={() => navigate(item.path)}
+                                    className={cn(
+                                        "relative flex flex-col items-center justify-center gap-1 transition-all duration-300 w-16 group",
+                                        active ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                                    )}
+                                >
+                                    {/* Active Indicator Splash */}
+                                    {active && (
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b-full shadow-lg shadow-blue-600/20" />
+                                    )}
+
+                                    <div className={cn(
+                                        "relative p-1.5 rounded-xl transition-all duration-300",
+                                        active ? "bg-blue-50" : "bg-transparent group-hover:bg-slate-50"
+                                    )}>
+                                        <item.icon
+                                            className={cn(
+                                                "w-6 h-6 transition-all duration-300",
+                                                active ? "fill-blue-600 text-blue-600" : "fill-transparent"
+                                            )}
+                                            strokeWidth={active ? 2 : 2}
+                                        />
+                                    </div>
+                                    <span className={cn(
+                                        "text-[10px] font-bold tracking-wide transition-all duration-300",
+                                        active ? "translate-y-0 opacity-100" : "translate-y-0.5 opacity-80"
+                                    )}>
+                                        {item.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -3,10 +3,20 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, CheckCircle2, FileCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useKYC } from "@/hooks/useKYC";
+import { useEffect } from "react";
 
 const KYCUpgrade = () => {
     const navigate = useNavigate();
-    const { kycData } = useKYC();
+    const { status, kycData, isLoading } = useKYC();
+
+    useEffect(() => {
+        if (!isLoading && status !== 'APPROVED') {
+            navigate('/kyc', { replace: true });
+        }
+    }, [status, isLoading, navigate]);
+
+    if (isLoading) return <div className="p-8 text-center text-slate-500 font-medium">Checking status...</div>;
+    if (status !== 'APPROVED') return null;
 
     return (
         <div className="min-h-screen bg-slate-50 flex justify-center w-full">
@@ -34,7 +44,7 @@ const KYCUpgrade = () => {
                             <div>
                                 <p className="font-semibold text-slate-800">Aadhaar Card</p>
                                 <p className="text-xs text-green-600 font-bold">
-                                    VERIFIED • •••• {kycData?.aadhar_number ? kycData.aadhar_number.slice(-4) : 'XXXX'}
+                                    VERIFIED • •••• {kycData?.decrypted_aadhar ? kycData.decrypted_aadhar.slice(-4) : 'XXXX'}
                                 </p>
                             </div>
                         </div>
@@ -44,7 +54,7 @@ const KYCUpgrade = () => {
                             <div>
                                 <p className="font-semibold text-slate-800">PAN Card</p>
                                 <p className="text-xs text-green-600 font-bold">
-                                    VERIFIED • •••• {kycData?.pan_number ? kycData.pan_number.slice(-4) : 'XXXX'}
+                                    VERIFIED • •••• {kycData?.decrypted_pan ? kycData.decrypted_pan.slice(-4) : 'XXXX'}
                                 </p>
                             </div>
                         </div>

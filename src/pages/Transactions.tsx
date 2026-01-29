@@ -1,15 +1,16 @@
 import { Layout } from '@/components/layout/Layout';
-import { BottomNav } from '@/components/home/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { History, Wallet, FileBarChart, ChevronRight, FileText, Banknote, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { getTransactionHistory } from '@/services/recharge.service';
+import { useKYC } from '@/hooks/useKYC';
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isApproved, isLoading: kycLoading } = useKYC();
   const [stats, setStats] = useState({ count: 0, cashback: 0 });
 
   useEffect(() => {
@@ -49,13 +50,12 @@ const TransactionsPage = () => {
       description: "Download monthly statements for your account activity.",
       icon: FileBarChart,
       color: "bg-purple-100 text-purple-600",
-      path: "#", // Placeholder
-      disabled: true
+      path: "/wallet/ledger",
     }
   ];
 
   return (
-    <Layout title="Reports">
+    <Layout title="Reports" showBottomNav>
       <div className="container py-8 pb-32">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Reports & Activity</h1>
@@ -81,7 +81,9 @@ const TransactionsPage = () => {
                 <Banknote className="h-5 w-5 text-orange-600" />
               </div>
               <p className="text-sm text-slate-500 mb-1">Cashback Earned</p>
-              <p className="text-2xl font-bold text-slate-900">₹{stats.cashback}</p>
+              <p className="text-2xl font-bold text-slate-900">
+                ₹{kycLoading ? "..." : (isApproved ? stats.cashback.toFixed(2) : "**.**")}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -91,8 +93,8 @@ const TransactionsPage = () => {
           {reportModules.map((item, index) => (
             <div
               key={index}
-              onClick={() => !item.disabled && navigate(item.path)}
-              className={`group flex items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all ${!item.disabled ? 'hover:shadow-md hover:border-blue-100 cursor-pointer active:scale-[0.99]' : 'opacity-60 cursor-not-allowed'}`}
+              onClick={() => navigate(item.path)}
+              className="group flex items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all hover:shadow-md hover:border-blue-100 cursor-pointer active:scale-[0.99]"
             >
               <div className={`p-4 rounded-xl ${item.color} mr-4 transition-colors group-hover:bg-opacity-80`}>
                 <item.icon className="h-6 w-6" />
@@ -106,7 +108,6 @@ const TransactionsPage = () => {
           ))}
         </div>
       </div>
-      <BottomNav />
     </Layout>
   );
 };

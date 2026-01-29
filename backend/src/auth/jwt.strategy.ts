@@ -14,14 +14,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: any) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: payload.sub },
+        // Supabase JWT usually has 'sub' as the user_id
+        const user = await this.prisma.profiles.findFirst({
+            where: { user_id: payload.sub },
         });
         if (!user) {
-            throw new UnauthorizedException();
+            // We can return payload itself if profile doesn't exist yet, 
+            // or throw Unauthorized depending on strictness. 
+            // For now, let's allow it so basic auth works.
+            return { id: payload.sub, email: payload.email };
         }
-        // Return user object without password
-        const { password, ...result } = user;
-        return result;
+        return { ...user, id: user.user_id }; // Ensure 'id' is mapped for decorators
     }
 }

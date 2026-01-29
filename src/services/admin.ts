@@ -29,8 +29,9 @@ export const adminService = {
             return { data: [], count: 0 };
         }
 
+        const userIds = profiles.map(p => p.user_id);
+
         // 2. Fetch Wallets manually
-        const userIds = profiles.map(p => p.id);
         const { data: wallets, error: walletsError } = await supabase
             .from('wallets')
             .select('user_id, balance, locked_balance')
@@ -38,12 +39,22 @@ export const adminService = {
 
         if (walletsError) console.error("Error fetching wallets:", walletsError);
 
-        // 3. Merge
+        // 3. Fetch KYC Status
+        const { data: kycRecords, error: kycError } = await (supabase as any)
+            .from('kyc_verifications')
+            .select('user_id, status')
+            .in('user_id', userIds);
+
+        if (kycError) console.error("Error fetching KYC status:", kycError);
+
+        // 4. Merge
         const data = profiles.map(p => {
-            const wallet = wallets?.find(w => w.user_id === p.id);
+            const wallet = wallets?.find(w => w.user_id === p.user_id);
+            const kyc = kycRecords?.find((k: any) => k.user_id === p.user_id);
             return {
                 ...p,
-                wallets: wallet || { balance: 0, locked_balance: 0 }
+                wallets: wallet || { balance: 0, locked_balance: 0 },
+                kyc_status: kyc?.status || null
             };
         });
 
@@ -123,8 +134,6 @@ export const adminService = {
         if (txn.status === 'REFUNDED') throw new Error("Already refunded");
 
         // 2. Credit Wallet
-        // Re-use adjustWallet logic or simple update
-        // We should ideally use the wallet ledger.
         const { data: wallet } = await supabase.from('wallets').select('id, balance').eq('user_id', txn.user_id).single();
         if (!wallet) throw new Error("User wallet not found");
 
@@ -154,5 +163,25 @@ export const adminService = {
             target_id: transactionId,
             details: { amount: refundAmount, reason }
         });
+    },
+
+    async getPendingKYCCount() {
+        const { count, error } = await (supabase as any)
+            .from('kyc_verifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'PENDING');
+
+        if (error) throw error;
+        return count || 0;
+    },
+
+    async getPendingManualFundCount() {
+        const { count, error } = await (supabase as any)
+            .from('manual_fund_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'PENDING');
+
+        if (error) throw error;
+        return count || 0;
     }
 };

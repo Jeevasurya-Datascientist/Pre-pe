@@ -9,6 +9,8 @@ export const ProtectedRoute = () => {
     const { status: kycStatus, isLoading: kycLoading } = useKYC();
     const location = useLocation();
 
+    // If data is still loading (or user exists but data undefined), show loader
+    // derived from useKYC's hardened isLoading
     if (authLoading || kycLoading) {
         return (
             <Layout hideHeader>
@@ -20,20 +22,9 @@ export const ProtectedRoute = () => {
     }
 
     if (!user) {
-        return <Navigate to="/" state={{ from: location }} replace />;
-    }
-
-    // Logic Update:
-    // If Status is NULL (Not started) -> Force to KYC page
-    // If Status is PENDING/REJECTED/APPROVED -> Allow access (Banner will handle warnings)
-
-    // Exception: If on KYC page, don't redirect (avoids loop)
-    const isKYCPage = location.pathname === '/kyc' || location.pathname === '/profile/kyc';
-
-    if (!kycStatus && !isKYCPage) {
-        return <Navigate to="/kyc" replace />;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return <Outlet />;
-};
+}
 
